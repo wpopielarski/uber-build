@@ -24,7 +24,7 @@ export MAVEN_OPTS="-Xmx1500m"
 
 : ${SIGN_BUILD:=false}:           # Should the IDE and its dependencies be signed. If you enable this, make sure to also provide a value for KEYSTORE_GIT_REPO and KEYSTORE_PASS, or the script will ask the user for these inputs
 : ${KEYSTORE_GIT_REPO:=}          # URL to the Keystore Git repository
-: ${KEYSTORE_PASS:=}             # Password for the Keystore
+: ${KEYSTORE_PASS:=}              # Password for the Keystore
 
 : ${VERSION_TAG:=}                # Version suffix to be appended to the IDE version number. When building a signed IDE, make sure to provide a value for the VERSION_TAG
 
@@ -320,7 +320,7 @@ function build_ide()
     then
       export SET_VERSIONS="true"
     fi
-	./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root="file:/${SOURCE}" -Drepo.typesafe="file:/${LOCAL_REPO}" -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} clean install
+	./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root="file:/${SOURCE}" -Drepo.typesafe=${LOCAL_REPO} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} clean install
 	cd ${BASE_DIR}
 }
 
