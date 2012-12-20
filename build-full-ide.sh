@@ -363,6 +363,7 @@ function clone_git_repo_if_needed()
     git remote rm origin
     git remote add origin $GITHUB_REPO
     git fetch $NAME_REMOTE > /dev/null # Swallow output
+    git fetch --tags $NAME_REMOTE > /dev/null # Swallow output
     cd $BASE_DIR
   fi
 }
