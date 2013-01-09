@@ -14,7 +14,7 @@ export MAVEN_OPTS="-Xmx1500m"
 #               Overridable Environment Methods               #
 ###############################################################
 
-: ${DEBUG:=true}                  # Prints some additional information 
+: ${DEBUG:=true}                  # Prints some additional information
 
 : ${ECLIPSE:=eclipse}             # Eclipse executable
 : ${SBT:=sbt}                     # Sbt executable
@@ -28,7 +28,7 @@ export MAVEN_OPTS="-Xmx1500m"
 
 : ${VERSION_TAG:=}                # Version suffix to be appended to the IDE version number. When building a signed IDE, make sure to provide a value for the VERSION_TAG
 
-: ${SCALA_VERSION:=}              # Scala version to use to build the IDE and all its dependencies         
+: ${SCALA_VERSION:=}              # Scala version to use to build the IDE and all its dependencies
 : ${SCALA_IDE_BRANCH:=}           # Scala IDE branch/tag to build
 : ${SCALARIFORM_GIT_REPO:=}       # Git repository to use to build scalariform
 : ${SCALARIFORM_BRANCH:=}         # Scalariform branch/tag to build
@@ -43,11 +43,18 @@ export MAVEN_OPTS="-Xmx1500m"
 #                          Global Methods                     #
 ###############################################################
 
+# prints the script's arguments, one on every line, with escape
+# sequences interpreted
+function print_own_arguments()
+{
+    printf '"%b"\n' "$0" "$@" | nl -v0 -s": "
+}
+
 function abort()
 {
   MSG=$1
   if [ "$MSG" ]
-  then 
+  then
     echo >&2 "$MSG"
   fi
   echo "Abort."
@@ -56,7 +63,7 @@ function abort()
 
 function print_step()
 {
-	cat <<EOF
+        cat <<EOF
 
 ==================================================================
                      Building $1
@@ -80,9 +87,13 @@ function debug()
   if [[ $DEBUG ]]
   then
     echo $MSG
-  fi 
+  fi
 }
 
+if [[ $DEBUG ]]
+then
+    print_own_arguments
+fi
 ###############################################################
 #                       SCALA VERSION                         #
 ###############################################################
@@ -95,26 +106,26 @@ fi
 
 case $SCALA_VERSION in
 
-	2.9.* )
-		maven_toolchain_profile=sbt-2.9
-		scala_profile_ide=scala-2.9.x
-		REPO_SUFFIX=29x
-		;;
+        2.9.* )
+                maven_toolchain_profile=sbt-2.9
+                scala_profile_ide=scala-2.9.x
+                REPO_SUFFIX=29x
+                ;;
 
-	2.10.* )
-		maven_toolchain_profile=sbt-2.10
-		scala_profile_ide=scala-2.10.x
-		REPO_SUFFIX=210x
-		;;
+        2.10.* )
+                maven_toolchain_profile=sbt-2.10
+                scala_profile_ide=scala-2.10.x
+                REPO_SUFFIX=210x
+                ;;
 
     2.11.* )
-		maven_toolchain_profile=sbt-2.11
-		scala_profile_ide=scala-2.11.x
-		REPO_SUFFIX=211x
-		;;
+                maven_toolchain_profile=sbt-2.11
+                scala_profile_ide=scala-2.11.x
+                REPO_SUFFIX=211x
+                ;;
 
-	*)
-		abort "Unknown scala version ${SCALA_VERSION}"
+        *)
+                abort "Unknown scala version ${SCALA_VERSION}"
 esac
 
 
@@ -124,16 +135,16 @@ esac
 
 function validate_java()
 {
-	(java -version 2>&1 | grep \"1.6.*\")
-	if [[ $? -ne 0 ]]; then
-		java -version
-		abort "Invalid Java version detected. Only java 1.6 is supported due to changes in jarsigner in 1.7"
-	fi
+        (java -version 2>&1 | grep \"1.6.*\")
+        if [[ $? -ne 0 ]]; then
+                java -version
+                abort "Invalid Java version detected. Only java 1.6 is supported due to changes in jarsigner in 1.7"
+        fi
 }
 
 # If passed executable's name is available return 0 (true), else return 1 (false).
 # @param $1 The executable's name
-function executable_in_path() 
+function executable_in_path()
 {
   CMD=$1
   RES=$(which $CMD)
@@ -147,7 +158,7 @@ function executable_in_path()
 
 # Exit with code failure 1 if the executable is not available.
 # @param $1 The executable's name
-function assert_executable_in_path() 
+function assert_executable_in_path()
 {
   CMD=$1
   (executable_in_path $CMD) || {
@@ -180,157 +191,157 @@ REPO=file:${SOURCE}/${REPO_NAME}
 
 function build_sbinary()
 {
-	# build sbinary
-	print_step "sbinary"
+        # build sbinary
+        print_step "sbinary"
 
-	cd ${SBINARY_DIR}
+        cd ${SBINARY_DIR}
 
-	# maven style for the toolchain build
-	$SBT "reboot full" clean "show scala-instance" "set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
-	 'set every publishMavenStyle := true' \
-	 'set every resolvers := Seq("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")' \
-	 "set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
-	 'set every crossPaths := true' \
-	 'set every scalaBinaryVersion <<= scalaVersion.identity' \
-	 +core/publish
+        # maven style for the toolchain build
+        $SBT "reboot full" clean "show scala-instance" "set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
+         'set every publishMavenStyle := true' \
+         'set every resolvers := Seq("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")' \
+         "set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
+         'set every crossPaths := true' \
+         'set every scalaBinaryVersion <<= scalaVersion.identity' \
+         +core/publish
 
 
-	cd ${BASE_DIR}
+        cd ${BASE_DIR}
 }
 
 function build_xsbt()
 {
-	# build sbt
-	print_step "xsbt"
+        # build sbt
+        print_step "xsbt"
 
-	cd ${SBT_DIR}
-	$SBT "reboot full" clean \
-	"set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
-	'set every publishMavenStyle := true' \
-	'set every resolvers := Seq("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")' \
-	'set artifact in (compileInterfaceSub, packageBin) := Artifact("compiler-interface")' \
-	"set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
-	'set every crossPaths := true' \
-	'set every scalaBinaryVersion <<= scalaVersion.identity' \
-	+classpath/publish +logging/publish +io/publish +control/publish +classfile/publish \
-	+process/publish +relation/publish +interface/publish +persist/publish +api/publish \
-	+compiler-integration/publish +incremental-compiler/publish +compile/publish        \
-	+compiler-interface/publish
+        cd ${SBT_DIR}
+        $SBT "reboot full" clean \
+        "set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
+        'set every publishMavenStyle := true' \
+        'set every resolvers := Seq("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")' \
+        'set artifact in (compileInterfaceSub, packageBin) := Artifact("compiler-interface")' \
+        "set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
+        'set every crossPaths := true' \
+        'set every scalaBinaryVersion <<= scalaVersion.identity' \
+        +classpath/publish +logging/publish +io/publish +control/publish +classfile/publish \
+        +process/publish +relation/publish +interface/publish +persist/publish +api/publish \
+        +compiler-integration/publish +incremental-compiler/publish +compile/publish        \
+        +compiler-interface/publish
 
-	cd ${BASE_DIR}
+        cd ${BASE_DIR}
 }
 
 function build_toolchain()
 {
-	# build toolchain
-	print_step "build-toolchain"
+        # build toolchain
+        print_step "build-toolchain"
 
-	MAVEN_ARGS="-P ${scala_profile_ide} -Dmaven.repo.local=${LOCAL_REPO} clean install"
-	rm -rf ${SOURCE}/*
+        MAVEN_ARGS="-P ${scala_profile_ide} -Dmaven.repo.local=${LOCAL_REPO} clean install"
+        rm -rf ${SOURCE}/*
 
-	cd ${SCALAIDE_DIR}
-	mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
+        cd ${SCALAIDE_DIR}
+        mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
 
-	cd org.scala-ide.build-toolchain
-	mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
+        cd org.scala-ide.build-toolchain
+        mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
 
-	cd ../org.scala-ide.toolchain.update-site
-	mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
+        cd ../org.scala-ide.toolchain.update-site
+        mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
 
-	# make toolchain repo
+        # make toolchain repo
 
-	rm -Rf ${SOURCE}/plugins
-	mkdir -p ${PLUGINS}
+        rm -Rf ${SOURCE}/plugins
+        mkdir -p ${PLUGINS}
 
-	cp org.scala-ide.scala.update-site/target/site/plugins/*.jar ${PLUGINS}
-	
-	print_step "p2 toolchain repo"
+        cp org.scala-ide.scala.update-site/target/site/plugins/*.jar ${PLUGINS}
 
-	$ECLIPSE \
-	-debug \
-	-consolelog \
-	-nosplash \
-	-verbose \
-	-application org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher \
-	-metadataRepository ${REPO} \
-	-artifactRepository ${REPO} \
-	-source ${SOURCE} \
-	-compress \
-	-publishArtifacts
+        print_step "p2 toolchain repo"
 
-	cd ${BASE_DIR}
+        $ECLIPSE \
+        -debug \
+        -consolelog \
+        -nosplash \
+        -verbose \
+        -application org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher \
+        -metadataRepository ${REPO} \
+        -artifactRepository ${REPO} \
+        -source ${SOURCE} \
+        -compress \
+        -publishArtifacts
+
+        cd ${BASE_DIR}
 }
 
 function build_refactoring()
 {
-	# build scala-refactoring
-	print_step "scala-refactoring"
+        # build scala-refactoring
+        print_step "scala-refactoring"
 
-	cd ${SCALA_REFACTORING_DIR}
-	GIT_HASH="`git log -1 --pretty=format:"%h"`"
-	${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} $REFACTORING_MAVEN_ARGS -Drepo.scala-ide="file:/${SOURCE}" -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
+        cd ${SCALA_REFACTORING_DIR}
+        GIT_HASH="`git log -1 --pretty=format:"%h"`"
+        ${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} $REFACTORING_MAVEN_ARGS -Drepo.scala-ide="file:/${SOURCE}" -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
 
-	cd $BASE_DIR
+        cd $BASE_DIR
 
-	# make scala-refactoring repo
+        # make scala-refactoring repo
 
-	REPO_NAME=scala-refactoring-${REPO_SUFFIX}
-	REPO=file:${SOURCE}/${REPO_NAME}
+        REPO_NAME=scala-refactoring-${REPO_SUFFIX}
+        REPO=file:${SOURCE}/${REPO_NAME}
 
-	rm -Rf ${SOURCE}/plugins
-	cp -R scala-refactoring/org.scala-refactoring.update-site/target/site/plugins ${SOURCE}/
+        rm -Rf ${SOURCE}/plugins
+        cp -R scala-refactoring/org.scala-refactoring.update-site/target/site/plugins ${SOURCE}/
 
-	$ECLIPSE \
-	-debug \
-	-consolelog \
-	-nosplash \
-	-verbose \
-	-application org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher \
-	-metadataRepository ${REPO} \
-	-artifactRepository ${REPO} \
-	-source ${SOURCE} \
-	-compress \
-	-publishArtifacts
+        $ECLIPSE \
+        -debug \
+        -consolelog \
+        -nosplash \
+        -verbose \
+        -application org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher \
+        -metadataRepository ${REPO} \
+        -artifactRepository ${REPO} \
+        -source ${SOURCE} \
+        -compress \
+        -publishArtifacts
 
-	cd ${BASE_DIR}
+        cd ${BASE_DIR}
 }
 
 function build_scalariform()
 {
-	# build scalariform
-	print_step "scalariform"
-	cd ${SCALARIFORM_DIR}
+        # build scalariform
+        print_step "scalariform"
+        cd ${SCALARIFORM_DIR}
 
-	GIT_HASH="`git log -1 --pretty=format:"%h"`"
-	
-	${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide="file:/${SOURCE}" -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
+        GIT_HASH="`git log -1 --pretty=format:"%h"`"
 
-	rm -rf ${SOURCE}/scalariform-${REPO_SUFFIX}
-	mkdir ${SOURCE}/scalariform-${REPO_SUFFIX}
-	cp -r scalariform.update/target/site/* ${SOURCE}/scalariform-${REPO_SUFFIX}/
+        ${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide="file:/${SOURCE}" -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
 
-	cd ${BASE_DIR}
+        rm -rf ${SOURCE}/scalariform-${REPO_SUFFIX}
+        mkdir ${SOURCE}/scalariform-${REPO_SUFFIX}
+        cp -r scalariform.update/target/site/* ${SOURCE}/scalariform-${REPO_SUFFIX}/
+
+        cd ${BASE_DIR}
 }
 
 function build_ide()
 {
-	print_step "Building the IDE"
-	cd ${SCALAIDE_DIR}
+        print_step "Building the IDE"
+        cd ${SCALAIDE_DIR}
     if $SIGN_BUILD
     then
       export SET_VERSIONS="true"
     fi
-	./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root="file:/${SOURCE}" -Drepo.typesafe=${LOCAL_REPO} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} clean install
-	cd ${BASE_DIR}
+        ./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root="file:/${SOURCE}" -Drepo.typesafe=${LOCAL_REPO} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} clean install
+        cd ${BASE_DIR}
 }
 
 function sign_plugins()
 {
     print_step "Signing"
-    
-	cd ${SCALAIDE_DIR}/org.scala-ide.sdt.update-site
-	ECLIPSE_ALIAS=$ECLIPSE
-	ECLIPSE=$(which $ECLIPSE_ALIAS) ./plugin-signing.sh ${BASE_DIR}/${KEYSTORE_FOLDER}/typesafe.keystore typesafe ${KEYSTORE_PASS} ${KEYSTORE_PASS}
+
+        cd ${SCALAIDE_DIR}/org.scala-ide.sdt.update-site
+        ECLIPSE_ALIAS=$ECLIPSE
+        ECLIPSE=$(which $ECLIPSE_ALIAS) ./plugin-signing.sh ${BASE_DIR}/${KEYSTORE_FOLDER}/typesafe.keystore typesafe ${KEYSTORE_PASS} ${KEYSTORE_PASS}
     cd ${BASE_DIR}
 }
 
@@ -349,7 +360,7 @@ function clone_git_repo_if_needed()
       $GIT clone $GITHUB_REPO $FOLDER_DIR
   else
     cd $FOLDER_DIR
-    git remote rm origin 
+    git remote rm origin
     git remote add origin $GITHUB_REPO
     git fetch $NAME_REMOTE > /dev/null # Swallow output
     cd $BASE_DIR
@@ -360,7 +371,7 @@ function exist_branch_in_repo()
 {
   BRANCH=$1
   GIT_REPO=$2
-  
+
   ESCAPED_BRANCH=`echo $BRANCH | sed -e 's/[\/&]/\\\&/g'`
   # Checks if it exists a remote branch that matches ESCAPED_BRANCH
   REMOTES=`$GIT ls-remote $GIT_REPO | awk '/'$ESCAPED_BRANCH'/ {print $2}'`
@@ -369,14 +380,14 @@ function exist_branch_in_repo()
     return 0
   else
     return 1
-  fi 
+  fi
 }
 
 function exist_branch_in_repo_verbose()
 {
   BRANCH=$1
   GIT_REPO=$2
-  
+
   debug "Checking if branch $BRANCH exists in git repo ${GIT_REPO}..."
   if exist_branch_in_repo $BRANCH $GIT_REPO
   then
@@ -405,10 +416,10 @@ function validate()
     $GIT status --porcelain | awk "BEGIN {count = 0} {if (!match(\\\$2, \"${IGNORED_FILES_REGEX}\")) {count= count + 1;}} END {print count;}"
   )`
   if [[ $COUNT -ne 0 ]]; then
-  	echo -e "\nYou have uncommitted changes in $1:\n"
-	(cd $1 && $GIT status | grep -v ${IGNORED_FILES_REGEX})
-  	abort
-  fi 
+        echo -e "\nYou have uncommitted changes in $1:\n"
+        (cd $1 && $GIT status | grep -v ${IGNORED_FILES_REGEX})
+        abort
+  fi
 }
 
 function checkout_git_repo()
@@ -418,7 +429,7 @@ function checkout_git_repo()
   BRANCH=$3
 
   cd $FOLDER_DIR
-	
+
   REFS=`$GIT show-ref $BRANCH | awk '{split($0,a," "); print a[2]}' | awk '{split($0,a,"/"); print a[2]}'`
   if [[ "$REFS" = "tags" ]]
   then
@@ -455,7 +466,7 @@ then
     fi
     clone_git_repo_if_needed $KEYSTORE_GIT_REPO $KEYSTORE_FOLDER
   fi
-  
+
   # Password for using the keystore
   if [[ -z "$KEYSTORE_PASS" ]]
   then
@@ -467,7 +478,7 @@ then
 else
   echo "The IDE build will NOT be signed."
   if [[ -z $VERSION_TAG ]]; then
-	VERSION_TAG=local
+        VERSION_TAG=local
   fi
 fi
 
@@ -475,8 +486,8 @@ fi
 #                            BUILD                            #
 ###############################################################
 
-# At this point the version tag cannot be empty. Why? Because if the IDE build won't be signed, 
-# then VERSION_TAG is set to `local`. Otherwise, if the IDE build will be signed, then the 
+# At this point the version tag cannot be empty. Why? Because if the IDE build won't be signed,
+# then VERSION_TAG is set to `local`. Otherwise, if the IDE build will be signed, then the
 # VERSION_TAG must be set or the build will stop immediately.
 # This is really just a sanity check.
 assert_version_tag_not_empty
@@ -488,24 +499,23 @@ SCALA_IDE_GIT_REPO=git://github.com/scala-ide/scala-ide.git
 if [[ ( -z "$SCALARIFORM_GIT_REPO" ) && ( -z "$SCALA_REFACTORING_GIT_REPO" ) && ( -z "$SBT_GIT_REPO" ) ]]
 then
   read -n1 -p "Do you want to build the IDE dependencies using the original repositories, or the GitHub forks under the scala-ide organization? (o/f): " original_or_fork; echo;
+  SCALA_REFACTORING_GIT_REPO=git://github.com/scala-ide/scala-refactoring.git
   case "$original_or_fork" in
-	o ) 
-		debug "Using the original repositories"
-		SCALARIFORM_GIT_REPO=git://github.com/mdr/scalariform.git
-		SCALA_REFACTORING_GIT_REPO=git://github.com/scala-ide/scala-refactoring.git
-		SBT_GIT_REPO=git://github.com/harrah/xsbt.git
-		;;
-		
-	f ) 
-		debug "Using the GitHub forks for $SCALARIFORM_DIR and $SCALA_REFACTORING_DIR"
-		SCALARIFORM_GIT_REPO=git://github.com/scala-ide/scalariform.git
-		SCALA_REFACTORING_GIT_REPO=git://github.com/scala-ide/scala-refactoring.git
-		SBT_GIT_REPO=git://github.com/scala-ide/xsbt.git
-		;;
-		
-	*)
-		abort "Unexpected input. Found '$original_or_fork', expected 'o', for the original repositories, or 'f' for the forks."
-		;;
+        o )
+                debug "Using the original repositories"
+                SCALARIFORM_GIT_REPO=git://github.com/mdr/scalariform.git
+                SBT_GIT_REPO=git://github.com/sbt/sbt.git
+                ;;
+
+        f )
+                debug "Using the GitHub forks for $SCALARIFORM_DIR and $SBT_GIT_REPO"
+                SCALARIFORM_GIT_REPO=git://github.com/scala-ide/scalariform.git
+                SBT_GIT_REPO=git://github.com/scala-ide/xsbt.git
+                ;;
+
+        *)
+                abort "Unexpected input. Found '$original_or_fork', expected 'o', for the original repositories, or 'f' for the forks."
+                ;;
   esac
 fi
 
@@ -552,11 +562,11 @@ fi
 
 echo -e "Build configuration:"
 echo -e "-----------------------\n"
-echo -e "Sbt: \t\t\t${SBT}"
-echo -e "Scala version: \t\t${SCALA_VERSION}"
-echo -e "Version tag: \t\t${VERSION_TAG}"
-echo -e "P2 repo: \t\t${SOURCE}"
-echo -e "Toolchain repo: \t${REPO}"
+echo -e "Sbt            : \t\t\t${SBT}"
+echo -e "Scala version  : \t\t${SCALA_VERSION}"
+echo -e "Version tag    : \t\t${VERSION_TAG}"
+echo -e "P2 repo        : \t\t${SOURCE}"
+echo -e "Toolchain repo : \t${REPO}"
 
 echo -e "SBinary:\t\t${SBINARY_DIR}, branch: ${SBINARY_BRANCH}, repo: ${SBINARY_GIT_REPO}"
 echo -e "Sbt:\t\t\t${SBT_DIR}, branch: ${SBT_BRANCH}, repo: ${SBT_GIT_REPO}"
