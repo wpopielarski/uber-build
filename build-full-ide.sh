@@ -490,6 +490,10 @@ function checkout_git_repo()
 
   cd $FOLDER_DIR
 
+  # clean-up all local changes
+  git clean -d -f
+  git reset --hard
+
   REFS=`$GIT show-ref $BRANCH | awk '{split($0,a," "); print a[2]}' | awk '{split($0,a,"/"); print a[2]}'`
   if [[ "$REFS" = "tags" ]]
   then
