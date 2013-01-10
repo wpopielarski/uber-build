@@ -1,11 +1,5 @@
 #!/bin/bash -e
 
-# Warning: This script has only been tested with Mac OSX and Ubuntu Linux.
-
-# Usage Examples
-# Unsigned Build: SCALA_VERSION=2.11.0-SNAPSHOT SBT_GIT_REPO=git://github.com/scala-ide/xsbt.git SCALARIFORM_GIT_REPO=git://github.com/mdr/scalariform.git SCALA_REFACTORING_GIT_REPO=git://git.assembla.com/scala-refactoring.git SCALA_IDE_BRANCH=master SCALARIFORM_BRANCH=master SCALA_REFACTORING_BRANCH=master SBT_BRANCH=0.13 SBINARY_BRANCH=master ./build-full-ide.sh
-# Signed Build: VERSION_TAG=m3 SBT_GIT_REPO=git://github.com/scala-ide/xsbt.git SCALA_VERSION=2.10.0 SCALARIFORM_GIT_REPO=git://github.com/mdr/scalariform.git SCALA_REFACTORING_GIT_REPO=git://git.assembla.com/scala-refactoring.git SCALA_IDE_BRANCH=master SCALARIFORM_BRANCH=master SCALA_REFACTORING_BRANCH=master SBT_BRANCH=0.13 SBINARY_BRANCH=master SIGN_BUILD=true KEYSTORE_GIT_REPO=<profive git url to keystore> KEYSTORE_PASS=<provide keystore password> ./build-full-ide.sh
-#
 # If you wish to skip tests when building scala-refactoring, you can do so by setting the value of REFACTORING_MAVEN_ARGS=-Dmaven.test.skip=true, and pass it to the script.
 
 export MAVEN_OPTS="-Xmx1500m"
@@ -39,6 +33,10 @@ export MAVEN_OPTS="-Xmx1500m"
 : ${SBINARY_BRANCH:=}             # Sbinary branch/tag to build
 : ${REFACTORING_MAVEN_ARGS:=""}   # Pass some maven argument to the scala-refactoring build, e.g. -Dmaven.test.skip=true
 
+: ${ECLIPSE_PLATFORM:=}           # Pass the Eclipse platform (e.g., "indigo", or "juno")
+: ${BUILD_PLUGINS:=false}         # Should we build worksheet and the Typesafe IDE product as well.
+: ${WORKSHEET_BRANCH:=}           # Worksheet branch/tag to build
+
 ###############################################################
 #                          Global Methods                     #
 ###############################################################
@@ -52,18 +50,18 @@ function print_own_arguments()
 
 function abort()
 {
-  MSG=$1
-  if [ "$MSG" ]
-  then
-    echo >&2 "$MSG"
-  fi
-  echo "Abort."
-  exit 1
+	MSG=$1
+	if [ "$MSG" ]
+	then
+		echo >&2 "$MSG"
+	fi
+	echo "Abort."
+	exit 1
 }
 
 function print_step()
 {
-        cat <<EOF
+	cat <<EOF
 
 ==================================================================
                      Building $1
@@ -75,19 +73,19 @@ EOF
 # Check that the VERSION_TspAG was provided. If not, abort.
 function assert_version_tag_not_empty()
 {
-if [[ -z "$VERSION_TAG" ]]
-  then
-    abort "VERSION_TAG cannot be empty."
-  fi
+	if [[ -z "$VERSION_TAG" ]]
+	then
+		abort "VERSION_TAG cannot be empty."
+	fi
 }
 
 function debug()
 {
-  MSG=$1
-  if [[ $DEBUG ]]
-  then
-    echo $MSG
-  fi
+	MSG=$1
+	if [[ $DEBUG ]]
+	then
+		echo $MSG
+	fi
 }
 
 if [[ $DEBUG ]]
@@ -100,32 +98,56 @@ fi
 
 if [[ -z "$SCALA_VERSION" ]]
 then
-  abort "SCALA_VERSION cannot be empty"
+	abort "SCALA_VERSION cannot be empty"
 fi
 
 
 case $SCALA_VERSION in
 
-        2.9.* )
-                maven_toolchain_profile=sbt-2.9
-                scala_profile_ide=scala-2.9.x
-                REPO_SUFFIX=29x
-                ;;
+	2.9.* )
+    	scala_profile_ide=scala-2.9.x
+        worksheet_scala_profile=2.9.x
+        REPO_SUFFIX=29x
+        ;;
 
-        2.10.* )
-                maven_toolchain_profile=sbt-2.10
-                scala_profile_ide=scala-2.10.x
-                REPO_SUFFIX=210x
-                ;;
+    2.10.* )
+    	scala_profile_ide=scala-2.10.x
+        worksheet_scala_profile=2.10.x
+        REPO_SUFFIX=210x
+        ;;
 
     2.11.* )
-                maven_toolchain_profile=sbt-2.11
-                scala_profile_ide=scala-2.11.x
-                REPO_SUFFIX=211x
-                ;;
+    	scala_profile_ide=scala-2.11.x
+        worksheet_scala_profile=2.11.x
+        REPO_SUFFIX=211x
+        ;;
 
-        *)
-                abort "Unknown scala version ${SCALA_VERSION}"
+    *)
+    	abort "Unknown scala version ${SCALA_VERSION}"
+esac
+
+###############################################################
+#                       ECLIPSE PLATFORM                      #
+###############################################################
+
+if [[ -z "$ECLIPSE_PLATFORM" ]]
+then
+	abort "ECLIPSE_PLATFORM cannot be empty"
+fi
+
+case $ECLIPSE_PLATFORM in
+
+	indigo )
+		worksheet_eclipse_profile=indigo
+		;;
+
+	juno )
+		worksheet_eclipse_profile=juno
+		;;
+
+
+	*)
+		abort "Unknown scala version ${ECLIPSE_PLATFORM}"
 esac
 
 
@@ -135,43 +157,44 @@ esac
 
 function validate_java()
 {
-        (java -version 2>&1 | grep \"1.6.*\")
-        if [[ $? -ne 0 ]]; then
-                java -version
-                abort "Invalid Java version detected. Only java 1.6 is supported due to changes in jarsigner in 1.7"
-        fi
+	(java -version 2>&1 | grep \"1.6.*\")
+    if [[ $? -ne 0 ]]
+    then
+    	java -version
+        abort "Invalid Java version detected. Only java 1.6 is supported due to changes in jarsigner in 1.7"
+    fi
 }
 
 # If passed executable's name is available return 0 (true), else return 1 (false).
 # @param $1 The executable's name
 function executable_in_path()
 {
-  CMD=$1
-  RES=$(which $CMD)
-  if [ "$RES" ]
-  then
-    return 0
-  else
-    return 1
-  fi
+	CMD=$1
+	RES=$(which $CMD)
+	if [ "$RES" ]
+	then
+		return 0
+	else
+		return 1
+	fi
 }
 
 # Exit with code failure 1 if the executable is not available.
 # @param $1 The executable's name
 function assert_executable_in_path()
 {
-  CMD=$1
-  (executable_in_path $CMD) || {
-    abort "$CMD is not available."
-  }
+	CMD=$1
+	(executable_in_path $CMD) || {
+		abort "$CMD is not available."
+	}
 }
 
 # Checks that all executables needed by this script are available
 validate_java
-assert_executable_in_path ${MAVEN} # Check that maven executable is available
-assert_executable_in_path ${ECLIPSE} # Check that eclipse executable is available
-assert_executable_in_path ${GIT} # Check that git executable is available
-assert_executable_in_path ${SBT} # Check that sbt executable is available
+assert_executable_in_path ${MAVEN}
+assert_executable_in_path ${ECLIPSE}
+assert_executable_in_path ${GIT}
+assert_executable_in_path ${SBT}
 
 ############## Helpers #######################
 
@@ -180,8 +203,12 @@ SCALARIFORM_DIR=scalariform
 SCALA_REFACTORING_DIR=scala-refactoring
 SBINARY_DIR=sbinary
 SBT_DIR=xsbt
+WORKSHEET_DIR=worksheet-plugin
+TYPESAFE_IDE_DIR=typesafe-ide
+KEYSTORE_FOLDER=typesafe-keystore
 
 BASE_DIR=`pwd`
+KEYSTORE_PATH="${BASE_DIR}/${KEYSTORE_FOLDER}/typesafe.keystore"
 
 LOCAL_REPO=`pwd`/m2repo
 SOURCE=${BASE_DIR}/p2-repo
@@ -189,35 +216,40 @@ PLUGINS=${SOURCE}/plugins
 REPO_NAME=scala-eclipse-toolchain-osgi-${REPO_SUFFIX}
 REPO=file:${SOURCE}/${REPO_NAME}
 
+if $SIGN_BUILD
+then
+  MAVEN_SIGN_ARGS=" -Djarsigner.storepass=${KEYSTORE_PASS} -Djarsigner.keypass=${KEYSTORE_PASS} -Djarsigner.keystore=/${KEYSTORE_PATH} "
+fi
+
 function build_sbinary()
 {
-        # build sbinary
-        print_step "sbinary"
+	# build sbinary
+    print_step "sbinary"
 
-        cd ${SBINARY_DIR}
+    cd ${SBINARY_DIR}
 
-        # maven style for the toolchain build
-        $SBT "reboot full" clean "show scala-instance" "set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
-         'set every publishMavenStyle := true' \
-         'set every resolvers := Seq("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")' \
-         "set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
-         'set every crossPaths := true' \
-         'set every scalaBinaryVersion <<= scalaVersion.identity' \
-         +core/publish
+    # maven style for the toolchain build
+    $SBT "reboot full" clean "show scala-instance" "set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
+    	'set every publishMavenStyle := true' \
+		'set every resolvers := Seq("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")' \
+		"set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
+		'set every crossPaths := true' \
+		'set every scalaBinaryVersion <<= scalaVersion.identity' \
+		+core/publish
 
 
-        cd ${BASE_DIR}
+	cd ${BASE_DIR}
 }
 
 function build_xsbt()
 {
-        # build sbt
-        print_step "xsbt"
+	# build sbt
+    print_step "xsbt"
 
-        cd ${SBT_DIR}
-        $SBT "reboot full" clean \
-        "set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
-        'set every publishMavenStyle := true' \
+    cd ${SBT_DIR}
+    $SBT "reboot full" clean \
+    	"set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
+    	'set every publishMavenStyle := true' \
         'set every resolvers := Seq("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")' \
         'set artifact in (compileInterfaceSub, packageBin) := Artifact("compiler-interface")' \
         "set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
@@ -228,37 +260,37 @@ function build_xsbt()
         +compiler-integration/publish +incremental-compiler/publish +compile/publish        \
         +compiler-interface/publish
 
-        cd ${BASE_DIR}
+    cd ${BASE_DIR}
 }
 
 function build_toolchain()
 {
-        # build toolchain
-        print_step "build-toolchain"
+	# build toolchain
+    print_step "build-toolchain"
 
-        MAVEN_ARGS="-P ${scala_profile_ide} -Dmaven.repo.local=${LOCAL_REPO} clean install"
-        rm -rf ${SOURCE}/*
+    MAVEN_ARGS="-P ${scala_profile_ide} -Dmaven.repo.local=${LOCAL_REPO} clean install"
+    rm -rf ${SOURCE}/*
 
-        cd ${SCALAIDE_DIR}
-        mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
+    cd ${SCALAIDE_DIR}
+    mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
 
-        cd org.scala-ide.build-toolchain
-        mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
+    cd org.scala-ide.build-toolchain
+    mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
 
-        cd ../org.scala-ide.toolchain.update-site
-        mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
+    cd ../org.scala-ide.toolchain.update-site
+    mvn -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
 
-        # make toolchain repo
+    # make toolchain repo
 
-        rm -Rf ${SOURCE}/plugins
-        mkdir -p ${PLUGINS}
+    rm -Rf ${SOURCE}/plugins
+    mkdir -p ${PLUGINS}
 
-        cp org.scala-ide.scala.update-site/target/site/plugins/*.jar ${PLUGINS}
+    cp org.scala-ide.scala.update-site/target/site/plugins/*.jar ${PLUGINS}
 
-        print_step "p2 toolchain repo"
+    print_step "p2 toolchain repo"
 
-        $ECLIPSE \
-        -debug \
+    $ECLIPSE \
+    	-debug \
         -consolelog \
         -nosplash \
         -verbose \
@@ -269,29 +301,29 @@ function build_toolchain()
         -compress \
         -publishArtifacts
 
-        cd ${BASE_DIR}
+	cd ${BASE_DIR}
 }
 
 function build_refactoring()
 {
-        # build scala-refactoring
-        print_step "scala-refactoring"
+	# build scala-refactoring
+    print_step "scala-refactoring"
 
-        cd ${SCALA_REFACTORING_DIR}
-        GIT_HASH="`git log -1 --pretty=format:"%h"`"
-        ${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} $REFACTORING_MAVEN_ARGS -Drepo.scala-ide="file:/${SOURCE}" -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
+    cd ${SCALA_REFACTORING_DIR}
+    GIT_HASH="`git log -1 --pretty=format:"%h"`"
+    ${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} $REFACTORING_MAVEN_ARGS -Drepo.scala-ide="file:/${SOURCE}" -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
 
-        cd $BASE_DIR
+    cd $BASE_DIR
 
-        # make scala-refactoring repo
+    # make scala-refactoring repo
 
-        REPO_NAME=scala-refactoring-${REPO_SUFFIX}
-        REPO=file:${SOURCE}/${REPO_NAME}
+    REPO_NAME=scala-refactoring-${REPO_SUFFIX}
+    REPO=file:${SOURCE}/${REPO_NAME}
 
-        rm -Rf ${SOURCE}/plugins
-        cp -R scala-refactoring/org.scala-refactoring.update-site/target/site/plugins ${SOURCE}/
+    rm -Rf ${SOURCE}/plugins
+    cp -R scala-refactoring/org.scala-refactoring.update-site/target/site/plugins ${SOURCE}/
 
-        $ECLIPSE \
+    $ECLIPSE \
         -debug \
         -consolelog \
         -nosplash \
@@ -303,48 +335,75 @@ function build_refactoring()
         -compress \
         -publishArtifacts
 
-        cd ${BASE_DIR}
+    cd ${BASE_DIR}
 }
 
 function build_scalariform()
 {
-        # build scalariform
-        print_step "scalariform"
-        cd ${SCALARIFORM_DIR}
+    # build scalariform
+    print_step "scalariform"
+    cd ${SCALARIFORM_DIR}
 
-        GIT_HASH="`git log -1 --pretty=format:"%h"`"
+    GIT_HASH="`git log -1 --pretty=format:"%h"`"
 
-        ${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide="file:/${SOURCE}" -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
+	${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide="file:/${SOURCE}" -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
 
-        rm -rf ${SOURCE}/scalariform-${REPO_SUFFIX}
-        mkdir ${SOURCE}/scalariform-${REPO_SUFFIX}
-        cp -r scalariform.update/target/site/* ${SOURCE}/scalariform-${REPO_SUFFIX}/
+    rm -rf ${SOURCE}/scalariform-${REPO_SUFFIX}
+    mkdir ${SOURCE}/scalariform-${REPO_SUFFIX}
+    cp -r scalariform.update/target/site/* ${SOURCE}/scalariform-${REPO_SUFFIX}/
 
-        cd ${BASE_DIR}
+    cd ${BASE_DIR}
 }
 
 function build_ide()
 {
-        print_step "Building the IDE"
-        cd ${SCALAIDE_DIR}
+	print_step "Building the IDE"
+
+    cd ${SCALAIDE_DIR}
+
     if $SIGN_BUILD
     then
       export SET_VERSIONS="true"
     fi
-        ./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root="file:/${SOURCE}" -Drepo.typesafe=${LOCAL_REPO} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} clean install
-        cd ${BASE_DIR}
+
+	./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root="file:/${SOURCE}" -Drepo.typesafe="file:/${LOCAL_REPO}" -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} clean install
+
+	cd ${BASE_DIR}
 }
 
-function sign_plugins()
+function sign_ide()
 {
-    print_step "Signing"
+	print_step "Signing"
 
-        cd ${SCALAIDE_DIR}/org.scala-ide.sdt.update-site
-        ECLIPSE_ALIAS=$ECLIPSE
-        ECLIPSE=$(which $ECLIPSE_ALIAS) ./plugin-signing.sh ${BASE_DIR}/${KEYSTORE_FOLDER}/typesafe.keystore typesafe ${KEYSTORE_PASS} ${KEYSTORE_PASS}
+	cd ${SCALAIDE_DIR}/org.scala-ide.sdt.update-site
+
+	ECLIPSE_ALIAS=$ECLIPSE
+	ECLIPSE=$(which $ECLIPSE_ALIAS) ./plugin-signing.sh ${KEYSTORE_PATH} typesafe ${KEYSTORE_PASS} ${KEYSTORE_PASS}
+
     cd ${BASE_DIR}
 }
 
+function build_worksheet_plugin()
+{
+	print_step "Building Worksheet"
+	
+	cd ${WORKSHEET_DIR}
+
+    SCALA_IDE_BINARIES=${BASE_DIR}/${SCALAIDE_DIR}/org.scala-ide.sdt.update-site/target/site
+
+    # First run the task for setting the (strict) bundles' version in the MANIFEST of the Worksheet plugin
+    mvn -DconsiderLocal=false -P set-versions -P ${worksheet_scala_profile} -P ${worksheet_eclipse_profile} -Drepo.scala-ide=file:${SCALA_IDE_BINARIES} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Dtycho.style=maven --non-recursive exec:java
+    # Then build the Worksheet plugin
+    mvn -DconsiderLocal=false -P ${worksheet_scala_profile} -P ${worksheet_eclipse_profile} -Drepo.scala-ide=file:${SCALA_IDE_BINARIES} -Dscala.version=${SCALA_VERSION} -Dversion.tag=v ${MAVEN_SIGN_ARGS} clean package
+
+	cd ${BASE_DIR}
+}
+
+function build_plugins()
+{
+	print_step "Building Plugins and Typesafe IDE"
+	build_worksheet_plugin
+}
 
 ###############################################################
 #                          GIT Helpers                        #
@@ -445,12 +504,9 @@ function checkout_git_repo()
   validate ${FOLDER_DIR}
 }
 
-
 ###############################################################
 #                          SIGNING                            #
 ###############################################################
-
-KEYSTORE_FOLDER="typesafe-keystore"
 
 if $SIGN_BUILD
 then
@@ -475,7 +531,7 @@ then
     KEYSTORE_PASS=$passw
   fi
   # Check that the password to the keystore is correct (or fail fast)
-  $KEYTOOL -list -keystore ${BASE_DIR}/${KEYSTORE_FOLDER}/typesafe.keystore -storepass ${KEYSTORE_PASS} -alias typesafe
+  $KEYTOOL -list -keystore ${KEYSTORE_PATH} -storepass ${KEYSTORE_PASS} -alias typesafe
 else
   echo "The IDE build will NOT be signed."
   if [[ -z $VERSION_TAG ]]; then
@@ -496,6 +552,8 @@ assert_version_tag_not_empty
 # These are currently non-overridable defaults
 SBINARY_GIT_REPO=git://github.com/scala-ide/sbinary.git
 SCALA_IDE_GIT_REPO=git://github.com/scala-ide/scala-ide.git
+WORKSHEET_GIT_REPO=git://github.com/scala-ide/scala-worksheet.git
+TYPESAFE_IDE_GIT_REPO=git://github.com/typesafehub/scala-ide-product.git
 
 if [[ ( -z "$SCALARIFORM_GIT_REPO" ) && ( -z "$SCALA_REFACTORING_GIT_REPO" ) && ( -z "$SBT_GIT_REPO" ) ]]
 then
@@ -525,6 +583,7 @@ clone_git_repo_if_needed ${SBT_GIT_REPO} ${SBT_DIR}
 clone_git_repo_if_needed ${SCALA_IDE_GIT_REPO} ${SCALAIDE_DIR}
 clone_git_repo_if_needed ${SCALARIFORM_GIT_REPO} ${SCALARIFORM_DIR}
 clone_git_repo_if_needed ${SCALA_REFACTORING_GIT_REPO} ${SCALA_REFACTORING_DIR}
+clone_git_repo_if_needed ${WORKSHEET_GIT_REPO} ${WORKSHEET_DIR}
 
 if [[ ( -z "$SCALA_IDE_BRANCH" ) ]]
 then
@@ -561,6 +620,13 @@ then
   assert_branch_in_repo_verbose $SBT_BRANCH $SBT_GIT_REPO
 fi
 
+if [[ $BUILD_PLUGINS && ( -z "$WORKSHEET_BRANCH" ) ]]
+then
+  read -p "What branch/tag should I use for building ${WORKSHEET_DIR}: " worksheet_branch;
+  WORKSHEET_BRANCH=$worksheet_branch
+  assert_branch_in_repo_verbose $WORKSHEET_BRANCH $WORKSHEET_GIT_REPO
+fi
+
 echo -e "Build configuration:"
 echo -e "-----------------------\n"
 echo -e "Sbt            : \t\t\t${SBT}"
@@ -574,14 +640,23 @@ echo -e "Sbt:\t\t\t${SBT_DIR}, branch: ${SBT_BRANCH}, repo: ${SBT_GIT_REPO}"
 echo -e "Scalariform:\t\t${SCALARIFORM_DIR}, branch: ${SCALARIFORM_BRANCH}, repo: ${SCALARIFORM_GIT_REPO}"
 echo -e "Scala-refactoring:\t${SCALA_REFACTORING_DIR}, branch: ${SCALA_REFACTORING_BRANCH}, repo: ${SCALA_REFACTORING_GIT_REPO}"
 echo -e "Scala IDE:  \t\t${SCALAIDE_DIR}, branch: ${SCALA_IDE_BRANCH}, repo: ${SCALA_IDE_GIT_REPO}"
+if $BUILD_PLUGINS
+then
+  echo -e "Worksheet:  \t\t${WORKSHEET_DIR}, branch: ${WORKSHEET_BRANCH}, repo: ${WORKSHEET_GIT_REPO}"
+fi
 echo -e "-----------------------\n"
-
 
 checkout_git_repo ${SBINARY_GIT_REPO} ${SBINARY_DIR} ${SBINARY_BRANCH}
 checkout_git_repo ${SBT_GIT_REPO} ${SBT_DIR} ${SBT_BRANCH}
 checkout_git_repo ${SCALA_IDE_GIT_REPO} ${SCALAIDE_DIR} ${SCALA_IDE_BRANCH}
 checkout_git_repo ${SCALARIFORM_GIT_REPO} ${SCALARIFORM_DIR} ${SCALARIFORM_BRANCH}
 checkout_git_repo ${SCALA_REFACTORING_GIT_REPO} ${SCALA_REFACTORING_DIR} ${SCALA_REFACTORING_BRANCH}
+
+if $BUILD_PLUGINS
+then
+  checkout_git_repo ${WORKSHEET_GIT_REPO} ${WORKSHEET_DIR} ${WORKSHEET_BRANCH}
+  checkout_git_repo ${WORKSHEET_GIT_REPO} ${WORKSHEET_DIR} ${WORKSHEET_BRANCH}
+fi
 
 build_sbinary
 build_xsbt
@@ -592,5 +667,10 @@ build_ide
 
 if $SIGN_BUILD
 then
-  sign_plugins
+  sign_ide
+fi
+
+if $BUILD_PLUGINS
+then
+  build_plugins
 fi
