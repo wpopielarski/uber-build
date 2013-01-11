@@ -36,6 +36,8 @@ export MAVEN_OPTS="-Xmx1500m"
 : ${ECLIPSE_PLATFORM:=}           # Pass the Eclipse platform (e.g., "indigo", or "juno")
 : ${BUILD_PLUGINS:=false}         # Should we build worksheet and the Typesafe IDE product as well.
 : ${WORKSHEET_BRANCH:=}           # Worksheet branch/tag to build
+: ${TYPESAFE_IDE_BRANCH:=master}  # Typesafe IDE branch/tag to build (default is master)
+: ${TYPESAFE_IDE_VERSION_TAG:=}   # Typesafe IDE version tag
 
 ###############################################################
 #                          Global Methods                     #
@@ -69,12 +71,21 @@ function print_step()
 EOF
 }
 
-# Check that the VERSION_TspAG was provided. If not, abort.
+# Check that the VERSION_TAG was provided. If not, abort.
 function assert_version_tag_not_empty()
 {
 	if [[ -z "$VERSION_TAG" ]]
 	then
 		abort "VERSION_TAG cannot be empty."
+	fi
+}
+
+# Check that the TYPESAFE_IDE_VERSION_TAG was provided. If not, abort.
+function assert_typesafe_ide_version_tag_not_empty()
+{
+	if [[ -z "$TYPESAFE_IDE_VERSION_TAG" ]]
+	then
+		abort "TYPESAFE_IDE_VERSION_TAG cannot be empty."
 	fi
 }
 
@@ -214,6 +225,10 @@ SOURCE=${BASE_DIR}/p2-repo
 PLUGINS=${SOURCE}/plugins
 REPO_NAME=scala-eclipse-toolchain-osgi-${REPO_SUFFIX}
 REPO=file:${SOURCE}/${REPO_NAME}
+
+# Expected locations where to find binaries of Scala IDE and Worksheet after each of the projects has been built
+SCALA_IDE_BINARIES=${BASE_DIR}/${SCALAIDE_DIR}/org.scala-ide.sdt.update-site/target/site
+WORKSHEET_BINARIES=${BASE_DIR}/${WORKSHEET_DIR}/org.scalaide.worksheet.update-site/target/site/
 
 if $SIGN_BUILD
 then
@@ -388,8 +403,6 @@ function build_worksheet_plugin()
 
 	cd ${WORKSHEET_DIR}
 
-	SCALA_IDE_BINARIES=${BASE_DIR}/${SCALAIDE_DIR}/org.scala-ide.sdt.update-site/target/site
-
     # First run the task for setting the (strict) bundles' version in the MANIFEST of the Worksheet plugin
     mvn -DconsiderLocal=false -P set-versions -P ${worksheet_scala_profile} -P ${worksheet_eclipse_profile} -Drepo.scala-ide=file:${SCALA_IDE_BINARIES} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Dtycho.style=maven --non-recursive exec:java
     # Then build the Worksheet plugin
@@ -398,9 +411,50 @@ function build_worksheet_plugin()
 	cd ${BASE_DIR}
 }
 
+function create_ecosystem_update_site()
+{
+	TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR=typesafe-ide-merge-ecosystem
+	rm -rf $TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR
+	mkdir -p $TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR
+
+    #build-tools project is needed to merge the Scala IDE and Worksheet update-sites
+	BUILD_TOOLS_GIT_REPO=git@github.com:scala-ide/build-tools.git
+	BUILD_TOOLS=master
+	BUILD_TOOLS_DIR=build-tools
+
+	clone_git_repo_if_needed ${BUILD_TOOLS_GIT_REPO} ${BUILD_TOOLS_DIR}
+	checkout_git_repo ${BUILD_TOOLS_GIT_REPO} ${BUILD_TOOLS_DIR} ${BUILD_TOOLS}
+
+	cd $BUILD_TOOLS_DIR
+	cd maven-tool/merge-site # this folder contains the POM for merging update-sites
+
+    # Merge the Scala IDE and Worksheet update-sites in $TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR
+	mvn -Drepo.source=${SCALA_IDE_BINARIES} -Drepo.dest=${BASE_DIR}/${TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR} package
+	mvn -Drepo.source=${WORKSHEET_BINARIES} -Drepo.dest=${BASE_DIR}/${TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR} package
+
+	cd ${BASE_DIR}
+}
+
+function build_typesafe_ide()
+{
+	print_step "Building Typesafe IDE"
+
+    # First create a base ecosystem update-site that contains both the Scala IDE and Worksheet plugins
+    create_ecosystem_update_site
+
+	cd ${TYPESAFE_IDE_DIR}
+
+    # Build the Typesafe IDE
+    mvn --non-recursive -Pconfigure -P${scala_profile_ide} -Dversion.tag=${TYPESAFE_IDE_VERSION_TAG} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Drepopath.scala-ide.ecosystem="" -Drepo.scala-ide.root=file:${BASE_DIR}/$TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR process-resources
+	mvn -P${scala_profile_ide} -Dversion.tag=${TYPESAFE_IDE_VERSION_TAG} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Drepopath.scala-ide.ecosystem="" -Drepo.scala-ide.root=file:${BASE_DIR}/$TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR ${MAVEN_SIGN_ARGS} clean package
+
+	cd ${BASE_DIR}
+}
+
 function build_plugins()
 {
 	build_worksheet_plugin
+	build_typesafe_ide
 }
 
 ###############################################################
@@ -586,6 +640,7 @@ clone_git_repo_if_needed ${SCALA_IDE_GIT_REPO} ${SCALAIDE_DIR}
 clone_git_repo_if_needed ${SCALARIFORM_GIT_REPO} ${SCALARIFORM_DIR}
 clone_git_repo_if_needed ${SCALA_REFACTORING_GIT_REPO} ${SCALA_REFACTORING_DIR}
 clone_git_repo_if_needed ${WORKSHEET_GIT_REPO} ${WORKSHEET_DIR}
+clone_git_repo_if_needed ${TYPESAFE_IDE_GIT_REPO} ${TYPESAFE_IDE_DIR}
 
 if [[ ( -z "$SCALA_IDE_BRANCH" ) ]]; then
 	read -p "What branch/tag should I use for building the ${SCALAIDE_DIR}: " scala_ide_branch;
@@ -617,7 +672,7 @@ if [[ ( -z "$SBT_BRANCH" ) ]]; then
 	assert_branch_in_repo_verbose $SBT_BRANCH $SBT_GIT_REPO
 fi
 
-if [[ $BUILD_PLUGINS && ( -z "$WORKSHEET_BRANCH" ) ]]
+if $BUILD_PLUGINS && [[ -z "$WORKSHEET_BRANCH" ]]
 then
 	read -p "What branch/tag should I use for building ${WORKSHEET_DIR}: " worksheet_branch;
 	WORKSHEET_BRANCH=$worksheet_branch
@@ -640,6 +695,7 @@ echo -e "Scala IDE         : ${SCALAIDE_DIR}, branch: ${SCALA_IDE_BRANCH}, repo:
 if $BUILD_PLUGINS
 then
 	echo -e "Worksheet         : ${WORKSHEET_DIR}, branch: ${WORKSHEET_BRANCH}, repo: ${WORKSHEET_GIT_REPO}"
+	echo -e "Typesafe IDE      : ${TYPESAFE_IDE_DIR}, branch: ${TYPESAFE_IDE_BRANCH}, repo: ${TYPESAFE_IDE_GIT_REPO}"
 fi
 echo -e "----------------------------------------------\n"
 
@@ -652,7 +708,8 @@ checkout_git_repo ${SCALA_REFACTORING_GIT_REPO} ${SCALA_REFACTORING_DIR} ${SCALA
 if $BUILD_PLUGINS
 then
 	checkout_git_repo ${WORKSHEET_GIT_REPO} ${WORKSHEET_DIR} ${WORKSHEET_BRANCH}
-	checkout_git_repo ${WORKSHEET_GIT_REPO} ${WORKSHEET_DIR} ${WORKSHEET_BRANCH}
+	checkout_git_repo ${TYPESAFE_IDE_GIT_REPO} ${TYPESAFE_IDE_DIR} ${TYPESAFE_IDE_BRANCH}
+	assert_typesafe_ide_version_tag_not_empty
 fi
 
 build_sbinary
