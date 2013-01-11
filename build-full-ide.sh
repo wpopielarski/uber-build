@@ -2,8 +2,6 @@
 
 # If you wish to skip tests when building scala-refactoring, you can do so by setting the value of REFACTORING_MAVEN_ARGS=-Dmaven.test.skip=true, and pass it to the script.
 
-export MAVEN_OPTS="-Xmx1500m"
-
 ###############################################################
 #               Overridable Environment Methods               #
 ###############################################################
@@ -38,6 +36,9 @@ export MAVEN_OPTS="-Xmx1500m"
 : ${WORKSHEET_BRANCH:=}           # Worksheet branch/tag to build
 : ${TYPESAFE_IDE_BRANCH:=master}  # Typesafe IDE branch/tag to build (default is master)
 : ${TYPESAFE_IDE_VERSION_TAG:=}   # Typesafe IDE version tag
+
+export MAVEN_OPTS="-Xmx1500m"
+export $@ > /dev/null
 
 ###############################################################
 #                          Global Methods                     #
@@ -100,7 +101,7 @@ function debug()
 
 if [[ $DEBUG ]]
 then
-    print_own_arguments
+    print_own_arguments $@
 fi
 ###############################################################
 #                       SCALA VERSION                         #
