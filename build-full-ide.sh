@@ -38,7 +38,7 @@
 : ${TYPESAFE_IDE_VERSION_TAG:=}   # Typesafe IDE version tag
 
 export MAVEN_OPTS="-Xmx1500m"
-export $@ > /dev/null
+export "$@" > /dev/null
 
 ###############################################################
 #                          Global Methods                     #
@@ -101,7 +101,7 @@ function debug()
 
 if [[ $DEBUG ]]
 then
-    print_own_arguments $@
+    print_own_arguments "$@"
 fi
 ###############################################################
 #                       SCALA VERSION                         #
@@ -212,7 +212,7 @@ SCALAIDE_DIR=scala-ide
 SCALARIFORM_DIR=scalariform
 SCALA_REFACTORING_DIR=scala-refactoring
 SBINARY_DIR=sbinary
-SBT_DIR=xsbt
+SBT_DIR=sbt
 WORKSHEET_DIR=worksheet-plugin
 TYPESAFE_IDE_DIR=typesafe-ide
 KEYSTORE_FOLDER=typesafe-keystore
@@ -224,7 +224,7 @@ LOCAL_REPO=`pwd`/m2repo
 SOURCE=${BASE_DIR}/p2-repo
 PLUGINS=${SOURCE}/plugins
 REPO_NAME=scala-eclipse-toolchain-osgi-${REPO_SUFFIX}
-REPO=file:${SOURCE}/${REPO_NAME}
+REPO=file://${SOURCE}/${REPO_NAME}
 
 # Expected locations where to find binaries of Scala IDE and Worksheet after each of the projects has been built
 SCALA_IDE_BINARIES=${BASE_DIR}/${SCALAIDE_DIR}/org.scala-ide.sdt.update-site/target/site
@@ -255,7 +255,7 @@ function build_sbinary()
     cd ${BASE_DIR}
 }
 
-function build_xsbt()
+function build_sbt()
 {
     # build sbt
     print_step "Building Sbt"
@@ -282,7 +282,7 @@ function build_toolchain()
     # build toolchain
     print_step "Building Toolchain"
 
-    MAVEN_ARGS="-P ${scala_profile_ide} -Dmaven.repo.local=${LOCAL_REPO} clean install"
+    MAVEN_ARGS="-P ${scala_profile_ide} -Dmaven.repo.local=${LOCAL_REPO} -Drepo.typesafe=file://${LOCAL_REPO} clean install"
     rm -rf ${SOURCE}/*
 
     cd ${SCALAIDE_DIR}
@@ -325,14 +325,14 @@ function build_refactoring()
 
     cd ${SCALA_REFACTORING_DIR}
     GIT_HASH="`git log -1 --pretty=format:"%h"`"
-    ${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} $REFACTORING_MAVEN_ARGS -Drepo.scala-ide="file:/${SOURCE}" -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
+    ${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} $REFACTORING_MAVEN_ARGS -Drepo.scala-ide=file://${SOURCE} -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
 
     cd $BASE_DIR
 
     # make scala-refactoring repo
 
     REPO_NAME=scala-refactoring-${REPO_SUFFIX}
-    REPO=file:${SOURCE}/${REPO_NAME}
+    REPO=file://${SOURCE}/${REPO_NAME}
 
     rm -Rf ${SOURCE}/plugins
     cp -R scala-refactoring/org.scala-refactoring.update-site/target/site/plugins ${SOURCE}/
@@ -360,7 +360,7 @@ function build_scalariform()
 
     GIT_HASH="`git log -1 --pretty=format:"%h"`"
 
-    ${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide="file:/${SOURCE}" -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
+    ${MAVEN} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide=file://${SOURCE} -Dmaven.repo.local=${LOCAL_REPO} -Dgit.hash=${GIT_HASH} clean package
 
     rm -rf ${SOURCE}/scalariform-${REPO_SUFFIX}
     mkdir ${SOURCE}/scalariform-${REPO_SUFFIX}
@@ -380,7 +380,7 @@ function build_ide()
       export SET_VERSIONS="true"
     fi
 
-    ./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root="file:/${SOURCE}" -Drepo.typesafe="file:/${LOCAL_REPO}" -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} clean install
+    ./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root=file://${SOURCE} -Drepo.typesafe=file://${LOCAL_REPO} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} clean install
 
     cd ${BASE_DIR}
 }
@@ -404,14 +404,14 @@ function build_worksheet_plugin()
     cd ${WORKSHEET_DIR}
 
     # First run the task for setting the (strict) bundles' version in the MANIFEST of the Worksheet plugin
-    mvn -DconsiderLocal=false -P set-versions -P ${worksheet_scala_profile} -P ${worksheet_eclipse_profile} -Drepo.scala-ide=file:${SCALA_IDE_BINARIES} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Dtycho.style=maven --non-recursive exec:java
+    mvn -DconsiderLocal=false -P set-versions -P ${worksheet_scala_profile} -P ${worksheet_eclipse_profile} -Drepo.scala-ide=file://${SCALA_IDE_BINARIES} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Dtycho.style=maven --non-recursive exec:java
     # Then build the Worksheet plugin
-    mvn -DconsiderLocal=false -P ${worksheet_scala_profile} -P ${worksheet_eclipse_profile} -Drepo.scala-ide=file:${SCALA_IDE_BINARIES} -Dscala.version=${SCALA_VERSION} -Dversion.tag=v ${MAVEN_SIGN_ARGS} clean package
+    mvn -DconsiderLocal=false -P ${worksheet_scala_profile} -P ${worksheet_eclipse_profile} -Drepo.scala-ide=file://${SCALA_IDE_BINARIES} -Dscala.version=${SCALA_VERSION} -Dversion.tag=v ${MAVEN_SIGN_ARGS} clean package
 
     cd ${BASE_DIR}
 }
 
-function create_ecosystem_update_site()
+function create_merged_update_site()
 {
     TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR=typesafe-ide-merge-ecosystem
     rm -rf $TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR
@@ -440,13 +440,13 @@ function build_typesafe_ide()
     print_step "Building Typesafe IDE"
 
     # First create a base ecosystem update-site that contains both the Scala IDE and Worksheet plugins
-    create_ecosystem_update_site
+    create_merged_update_site
 
     cd ${TYPESAFE_IDE_DIR}
 
     # Build the Typesafe IDE
-    mvn --non-recursive -Pconfigure -P${scala_profile_ide} -Dversion.tag=${TYPESAFE_IDE_VERSION_TAG} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Drepopath.scala-ide.ecosystem="" -Drepo.scala-ide.root=file:${BASE_DIR}/$TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR process-resources
-    mvn -P${scala_profile_ide} -Dversion.tag=${TYPESAFE_IDE_VERSION_TAG} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Drepopath.scala-ide.ecosystem="" -Drepo.scala-ide.root=file:${BASE_DIR}/$TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR ${MAVEN_SIGN_ARGS} clean package
+    mvn --non-recursive -Pconfigure -P${scala_profile_ide} -Dversion.tag=${TYPESAFE_IDE_VERSION_TAG} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Drepopath.scala-ide.ecosystem="" -Drepo.scala-ide.root=file://${BASE_DIR}/$TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR process-resources
+    mvn -P${scala_profile_ide} -Dversion.tag=${TYPESAFE_IDE_VERSION_TAG} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Drepopath.scala-ide.ecosystem="" -Drepo.scala-ide.root=file://${BASE_DIR}/$TYPESAFE_IDE_MERGE_ECOSYSTEM_DIR ${MAVEN_SIGN_ARGS} clean package
 
     cd ${BASE_DIR}
 }
@@ -713,7 +713,7 @@ then
 fi
 
 build_sbinary
-build_xsbt
+build_sbt
 build_toolchain
 build_refactoring
 build_scalariform
