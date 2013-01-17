@@ -407,7 +407,7 @@ function build_worksheet_plugin()
     # First run the task for setting the (strict) bundles' version in the MANIFEST of the Worksheet plugin
     ${MAVEN} ${MAVEN_EXTRA_ARGS} -DconsiderLocal=false -P set-versions -P ${worksheet_scala_profile} -P ${worksheet_eclipse_profile} -Drepo.scala-ide=file://${SCALA_IDE_BINARIES} -Dscala.version=${SCALA_VERSION} -Dmaven.repo.local=${LOCAL_REPO} -Dtycho.style=maven --non-recursive exec:java
     # Then build the Worksheet plugin
-    ${MAVEN} ${MAVEN_EXTRA_ARGS} -DconsiderLocal=false -P ${worksheet_scala_profile} -P ${worksheet_eclipse_profile} -Drepo.scala-ide=file://${SCALA_IDE_BINARIES} -Dscala.version=${SCALA_VERSION} -Dversion.tag=v ${MAVEN_SIGN_ARGS} clean package
+    ${MAVEN} ${MAVEN_EXTRA_ARGS} -DconsiderLocal=false -P ${worksheet_scala_profile} -P ${worksheet_eclipse_profile} -Drepo.scala-ide=file://${SCALA_IDE_BINARIES} -Dscala.version=${SCALA_VERSION} -Dversion.tag=v -Dmaven.repo.local=${LOCAL_REPO} ${MAVEN_SIGN_ARGS} clean package
 
     cd ${BASE_DIR}
 }
