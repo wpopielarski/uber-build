@@ -22,6 +22,7 @@
 : ${VERSION_TAG:=}                # Version suffix to be appended to the IDE version number. When building a signed IDE, make sure to provide a value for the VERSION_TAG
 
 : ${SCALA_VERSION:=}              # Scala version to use to build the IDE and all its dependencies
+: ${SCALA_IDE_GIT_REPO:=git://github.com/scala-ide/scala-ide.git} # Git repository to use to build Scala IDE 
 : ${SCALA_IDE_BRANCH:=}           # Scala IDE branch/tag to build
 : ${SCALARIFORM_GIT_REPO:=}       # Git repository to use to build scalariform
 : ${SCALARIFORM_BRANCH:=}         # Scalariform branch/tag to build
@@ -252,13 +253,14 @@ function build_sbinary()
 
     # maven style for the toolchain build
     $SBT "reboot full" clean "show scala-instance" "set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
+        'set (version in core) ~= { v => v + "-pretending-SNAPSHOT" }' \
         'set every publishMavenStyle := true' \
         'set every resolvers := Seq("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")' \
         "set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
         'set every crossPaths := true' \
         'set every scalaBinaryVersion <<= scalaVersion.identity' \
+        'set (libraryDependencies in core) ~= { ld => ld flatMap { case dep if (dep.configurations.map(_ contains "test") getOrElse false)  => None; case dep => Some(dep) } }' \
         +core/publish
-
 
     cd ${BASE_DIR}
 }
@@ -272,11 +274,15 @@ function build_sbt()
     $SBT "reboot full" clean \
         "set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
         'set every publishMavenStyle := true' \
-        'set every resolvers := Seq("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")' \
+        'set every Util.includeTestDependencies := false' \
+        "set every resolvers := Seq(\"Sonatype OSS Snapshots\" at \"https://oss.sonatype.org/content/repositories/snapshots\", \"local-maven\" at \"file://${LOCAL_REPO}\")" \
         'set artifact in (compileInterfaceSub, packageBin) := Artifact("compiler-interface")' \
+        'set (libraryDependencies in compilePersistSub) ~= { ld => ld map { case dep if (dep.organization == "org.scala-tools.sbinary") && (dep.name == "sbinary") => dep.copy(revision = (dep.revision + "-pretending-SNAPSHOT")) ; case dep => dep } }' \
         "set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
         'set every crossPaths := true' \
         'set every scalaBinaryVersion <<= scalaVersion.identity' \
+        'set artifact in (compileInterfaceSub, packageBin) := Artifact("compiler-interface")' \
+        'set publishArtifact in (compileInterfaceSub, packageSrc) := false' \
         +classpath/publish +logging/publish +io/publish +control/publish +classfile/publish \
         +process/publish +relation/publish +interface/publish +persist/publish +api/publish \
         +compiler-integration/publish +incremental-compiler/publish +compile/publish        \
@@ -299,29 +305,19 @@ function build_toolchain()
     cd org.scala-ide.build-toolchain
     ${MAVEN} -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
 
-    cd ../org.scala-ide.toolchain.update-site
-    ${MAVEN} -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
-
     # make toolchain repo
-
-    rm -Rf ${SOURCE}/plugins
-    mkdir -p ${PLUGINS}
-
-    cp org.scala-ide.scala.update-site/target/site/plugins/*.jar ${PLUGINS}
 
     print_step "p2 toolchain repo"
 
-    $ECLIPSE \
-        -debug \
-        -consolelog \
-        -nosplash \
-        -verbose \
-        -application org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher \
-        -metadataRepository ${REPO} \
-        -artifactRepository ${REPO} \
-        -source ${SOURCE} \
-        -compress \
-        -publishArtifacts
+    cd ../org.scala-ide.toolchain.update-site
+    ${MAVEN} -Dscala.version=${SCALA_VERSION} ${MAVEN_ARGS}
+
+    REPO_NAME=scala-eclipse-toolchain-osgi-${REPO_SUFFIX}
+    REPO=file://${SOURCE}/${REPO_NAME}
+    rm -Rf ${SOURCE}/${REPO_NAME}
+    mkdir -p ${SOURCE}/${REPO_NAME}
+
+    cp -r org.scala-ide.scala.update-site/target/site/* ${SOURCE}/${REPO_NAME}
 
     cd ${BASE_DIR}
 }
@@ -342,20 +338,9 @@ function build_refactoring()
     REPO_NAME=scala-refactoring-${REPO_SUFFIX}
     REPO=file://${SOURCE}/${REPO_NAME}
 
-    rm -Rf ${SOURCE}/plugins
-    cp -R scala-refactoring/org.scala-refactoring.update-site/target/site/plugins ${SOURCE}/
-
-    $ECLIPSE \
-        -debug \
-        -consolelog \
-        -nosplash \
-        -verbose \
-        -application org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher \
-        -metadataRepository ${REPO} \
-        -artifactRepository ${REPO} \
-        -source ${SOURCE} \
-        -compress \
-        -publishArtifacts
+    rm -rf ${SOURCE}/${REPO_NAME}
+    mkdir -p ${SOURCE}/${REPO_NAME}
+    cp -r scala-refactoring/org.scala-refactoring.update-site/target/site/* ${SOURCE}/${REPO_NAME}
 
     cd ${BASE_DIR}
 }
@@ -388,7 +373,7 @@ function build_ide()
       export SET_VERSIONS="true"
     fi
 
-    ./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root=file://${SOURCE} -Drepo.typesafe=file://${LOCAL_REPO} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} clean install
+    ./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root=file://${SOURCE} -Drepo.typesafe=file://${LOCAL_REPO} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} -Drepo.scala-refactoring=file://${SOURCE}/scala-refactoring-${REPO_SUFFIX} -Drepo.scalariform=file://${SOURCE}/scalariform-${REPO_SUFFIX} clean install
 
     cd ${BASE_DIR}
 }
@@ -480,7 +465,10 @@ function prepare_nextBase()
     mkdir -p ${NEXT_BASE}
 
     p2_merge ${SCALA_IDE_BINARIES} ${NEXT_BASE}
-    p2_merge ${SDK_BINARIES} ${NEXT_BASE}
+    if $BUILD_PLUGINS
+    then
+        p2_merge ${SDK_BINARIES} ${NEXT_BASE}
+    fi
 }
 
 # Publish to download.scala-ide.org
@@ -663,7 +651,6 @@ assert_version_tag_not_empty
 
 # These are currently non-overridable defaults
 SBINARY_GIT_REPO=git://github.com/scala-ide/sbinary.git
-SCALA_IDE_GIT_REPO=git://github.com/scala-ide/scala-ide.git
 WORKSHEET_GIT_REPO=git://github.com/scala-ide/scala-worksheet.git
 TYPESAFE_IDE_GIT_REPO=git://github.com/typesafehub/scala-ide-product.git
 
@@ -806,5 +793,9 @@ else
         *)
             debug "Not publishing base"
     esac
-    publish_worksheet "releases" $ecosystem_platform
+
+    if $BUILD_PLUGINS
+    then
+        publish_worksheet "releases" $ecosystem_platform
+    fi
 fi
