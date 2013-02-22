@@ -35,6 +35,7 @@
 
 : ${ECLIPSE_PLATFORM:=}           # Pass the Eclipse platform (e.g., "indigo", or "juno")
 : ${BUILD_PLUGINS:=false}         # Should we build worksheet and the Typesafe IDE product as well.
+: ${WORKSHEET_GIT_REPO:=git://github.com/scala-ide/scala-worksheet.git} # Git repostory to use to build Scala Worksheet
 : ${WORKSHEET_BRANCH:=}           # Worksheet branch/tag to build
 : ${TYPESAFE_IDE_BRANCH:=master}  # Typesafe IDE branch/tag to build (default is master)
 : ${TYPESAFE_IDE_VERSION_TAG:=}   # Typesafe IDE version tag
@@ -651,7 +652,6 @@ assert_version_tag_not_empty
 
 # These are currently non-overridable defaults
 SBINARY_GIT_REPO=git://github.com/scala-ide/sbinary.git
-WORKSHEET_GIT_REPO=git://github.com/scala-ide/scala-worksheet.git
 TYPESAFE_IDE_GIT_REPO=git://github.com/typesafehub/scala-ide-product.git
 
 if [[ ( -z "$SCALARIFORM_GIT_REPO" ) && ( -z "$SCALA_REFACTORING_GIT_REPO" ) && ( -z "$SBT_GIT_REPO" ) ]]
