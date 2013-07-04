@@ -157,13 +157,19 @@ fi
 case $ECLIPSE_PLATFORM in
 
     indigo )
+        eclipse_profile=eclipse-indigo
         worksheet_eclipse_profile=eclipse-indigo
         ecosystem_platform=e37
         ;;
 
     juno )
+        eclipse_profile=eclipse-juno
         worksheet_eclipse_profile=eclipse-juno
         ecosystem_platform=e38
+        ;;
+
+    kepler )
+        eclipse_profile=eclipse-kepler
         ;;
 
     *)
@@ -386,7 +392,7 @@ function build_ide()
       EXTRA_OPTIONS="-Dsbt.version=${SBT_VERSION}"
     fi
 
-    ./build-all.sh -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root=file://${SOURCE} -Drepo.typesafe=file://${LOCAL_REPO} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} -Drepo.scala-refactoring=file://${SOURCE}/scala-refactoring-${REPO_SUFFIX} -Drepo.scalariform=file://${SOURCE}/scalariform-${REPO_SUFFIX} ${EXTRA_OPTIONS} clean install
+    ./build-all.sh -P ${eclipse_profile} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root=file://${SOURCE} -Drepo.typesafe=file://${LOCAL_REPO} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} -Drepo.scala-refactoring=file://${SOURCE}/scala-refactoring-${REPO_SUFFIX} -Drepo.scalariform=file://${SOURCE}/scalariform-${REPO_SUFFIX} ${EXTRA_OPTIONS} clean install
 
     cd ${BASE_DIR}
 }
