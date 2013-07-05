@@ -310,7 +310,7 @@ function build_toolchain()
       EXTRA_OPTIONS="-Dsbt.version=${SBT_VERSION}"
     fi
 
-    MAVEN_ARGS="-P ${scala_profile_ide} -Dmaven.repo.local=${LOCAL_REPO} -Drepo.typesafe=file://${LOCAL_REPO} ${MAVEN_EXTRA_ARGS} ${EXTRA_OPTIONS} clean install"
+    MAVEN_ARGS="-P ${eclipse_profile} -P ${scala_profile_ide} -Dmaven.repo.local=${LOCAL_REPO} -Drepo.typesafe=file://${LOCAL_REPO} ${MAVEN_EXTRA_ARGS} ${EXTRA_OPTIONS} clean install"
     rm -rf ${SOURCE}/*
 
     cd ${SCALAIDE_DIR}
