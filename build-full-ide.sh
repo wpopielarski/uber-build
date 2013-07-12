@@ -37,17 +37,14 @@
 : ${ECLIPSE_PLATFORM:=}           # Pass the Eclipse platform (e.g., "indigo", or "juno")
 : ${BUILD_PLUGINS:=}              # Should we build worksheet, play plugin and the Typesafe IDE product as well.
 
-: ${WORKSHEET_BUILDIT:=}          # whether to build the Worksheet plugin
 : ${WORKSHEET_GIT_REPO:=git://github.com/scala-ide/scala-worksheet.git} # Git repostory to use to build Scala Worksheet
 : ${WORKSHEET_BRANCH:=}           # Worksheet branch/tag to build
 : ${WORKSHEET_VERSION_TAG:=v}     # Tag to add to the worksheet version
 
-: ${PLAY_BUILDIT:=}               # whether to build the Play plugin
 : ${PLAY_GIT_REPO:=git://github.com/scala-ide/scala-ide-play2.git} # Git repostory to use to build ScalaIDE Play plugin
 : ${PLAY_BRANCH:=}                # Play plugin branch/tag to build
 : ${PLAY_VERSION_TAG:=v}          # Tag to add to the Play plugin version
 
-: ${SCALASEARCH_BUILDIT:=}        # whether to build the ScalaSearch plugin
 : ${SCALASEARCH_GIT_REPO:=git://github.com/scala-ide/scala-search.git} # Git repostory to use to build ScalaIDE Play plugin
 : ${SCALASEARCH_BRANCH:=}         # ScalaSearch plugin branch/tag to build
 : ${SCALASEARCH_VERSION_TAG:=v}   # Tag to add to the ScalaSearch plugin version
@@ -55,8 +52,16 @@
 : ${TYPESAFE_IDE_BRANCH:=master}  # Typesafe IDE branch/tag to build (default is master)
 : ${TYPESAFE_IDE_VERSION_TAG:=}   # Typesafe IDE version tag
 
+###################
+# Local Variables #
+###################
+
 export MAVEN_OPTS="-Xmx1500m"
 export "$@" > /dev/null
+
+: ${PLAY_BUILDIT:=}               # whether to build the Play plugin
+: ${WORKSHEET_BUILDIT:=}          # whether to build the Worksheet plugin
+: ${SCALASEARCH_BUILDIT:=}        # whether to build the ScalaSearch plugin
 
 ###############################################################
 #                          Global Methods                     #
@@ -117,6 +122,17 @@ function debug()
     fi
 }
 
+# Check that the user is not building plugins by mistake
+function are_you_sure()
+{
+    echo "You have \$BUILD_PLUGINS=$BUILD_PLUGINS and \$SCALA_VERSION=$SCALA_VERSION."
+    read -p "Do you really want to build plugins with the unsupported $SCALA_VERSION ? [y/N]" response
+    if [[ ! $response =~ ^([yY][eE][sS]|[yY])$ ]]
+    then
+        $BUILD_PLUGINS=""
+    fi
+}
+
 if [[ $DEBUG ]]
 then
     print_own_arguments "$@"
@@ -132,15 +148,6 @@ fi
 
 
 case $SCALA_VERSION in
-
-    2.9.* )
-        scala_profile_ide=scala-2.9.x
-        worksheet_scala_profile=2.9.x
-        play_scala_profile=2.9.x
-        scalasearch_scala_profile=2.9.x
-        ECOSYSTEM_SCALA_VERSION=scala29
-        REPO_SUFFIX=29x
-        ;;
 
     2.10.* )
         scala_profile_ide=scala-2.10.x
@@ -158,6 +165,7 @@ case $SCALA_VERSION in
         scalasearch_scala_profile=2.11.x
         ECOSYSTEM_SCALA_VERSION=scala211
         REPO_SUFFIX=211x
+        if [[ $BUILD_PLUGINS ]]; then are_you_sure; fi
         ;;
 
     *)
@@ -781,8 +789,8 @@ if [[ ( -z "$SBT_BRANCH" ) ]]; then
     assert_branch_in_repo_verbose ${SBT_BRANCH} ${SBT_GIT_REPO}
 fi
 
-if [[ $BUILD_PLUGINS &&  -z "$WORKSHEET_BRANCH" ]]
-then
+if [[ ( $BUILD_PLUGINS ) && (-z "$WORKSHEET_BRANCH )" && ( -z "$PLAY_BRANCH" ) && ( -z "$SCALASEARCH_BRANCH" ) ]]
+    echo "You have \$BUILD_PLUGINS=$BUILD_PLUGINS and no plugin branch specified !"
     read -p "Do you want to build the Worksheet plugin ? [y/N]" response
     if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]
     then
@@ -791,15 +799,6 @@ then
         WORKSHEET_BRANCH=$worksheet_branch
         assert_branch_in_repo_verbose ${WORKSHEET_BRANCH} ${WORKSHEET_GIT_REPO}
     fi
-else
-    if [ $BUILD_PLUGINS ]; then
-        WORKSHEET_BUILDIT="true"
-        assert_branch_in_repo_verbose ${WORKSHEET_BRANCH} ${WORKSHEET_GIT_REPO}
-    fi
-fi
-
-if [[ $BUILD_PLUGINS &&  -z "$PLAY_BRANCH" ]]
-then
     read -p "Do you want to build the Play plugin ? [y/N]" response
     if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]
     then
@@ -808,15 +807,6 @@ then
         PLAY_BRANCH=$play_branch
         assert_branch_in_repo_verbose ${PLAY_BRANCH} ${PLAY_GIT_REPO}
     fi
-else
-    if [ $BUILD_PLUGINS ]; then
-        PLAY_BUILDIT="true"
-        assert_branch_in_repo_verbose ${PLAY_BRANCH} ${PLAY_GIT_REPO}
-    fi
-fi
-
-if [[ $BUILD_PLUGINS &&  -z "$SCALASEARCH_BRANCH" ]]
-then
     read -p "Do you want to build the ScalaSearch plugin ? [y/N]" response
     if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]
     then
@@ -827,8 +817,18 @@ then
     fi
 else
     if [ $BUILD_PLUGINS ]; then
-        SCALASEARCH_BUILDIT="true"
-        assert_branch_in_repo_verbose ${SCALASEARCH_BRANCH} ${SCALASEARCH_GIT_REPO}
+        if [[ ! -z $WORKSHEET_BRANCH ]]; then
+            WORKSHEET_BUILDIT="true"
+            assert_branch_in_repo_verbose ${WORKSHEET_BRANCH} ${WORKSHEET_GIT_REPO}
+        fi
+        if [[ ! -z $PLAY_BRANCH ]]; then
+            PLAY_BUILDIT="true"
+            assert_branch_in_repo_verbose ${PLAY_BRANCH} ${PLAY_GIT_REPO}
+        fi
+        if [[ ! -z $SCALASEARCH_BRANCH ]]; then
+            SCALASEARCH_BUILDIT="true"
+            assert_branch_in_repo_verbose ${SCALASEARCH_BRANCH} ${SCALASEARCH_GIT_REPO}
+        fi
     fi
 fi
 
@@ -865,7 +865,7 @@ if [[ $BUILD_PLUGINS ]]
 then
     echo -e "Worksheet         : ${WORKSHEET_DIR}, \tbranch: ${WORKSHEET_BRANCH}, repo: ${WORKSHEET_GIT_REPO}"
     echo -e "Play plugin       : ${PLAY_DIR}, \tbranch: ${PLAY_BRANCH}, repo: ${PLAY_GIT_REPO}"
-    echo -e "ScalaSearch         : ${SCALASEARCH_DIR}, \tbranch: ${SCALASEARCH_BRANCH}, repo: ${SCALASEARCH_GIT_REPO}"
+    echo -e "ScalaSearch       : ${SCALASEARCH_DIR}, \tbranch: ${SCALASEARCH_BRANCH}, repo: ${SCALASEARCH_GIT_REPO}"
     echo -e "Typesafe IDE      : ${TYPESAFE_IDE_DIR}, \tbranch: ${TYPESAFE_IDE_BRANCH}, repo: ${TYPESAFE_IDE_GIT_REPO}"
 fi
 echo -e "----------------------------------------------\n"
