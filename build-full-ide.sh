@@ -14,6 +14,8 @@
 : ${MAVEN_EXTRA_ARGS:=}           # Maven extra arguments, like --batch (for Jenkins)
 : ${GIT:=git}                     # Git executable
 : ${KEYTOOL=keytool}              # Needed for signing the JARs
+: ${DONT_CHECK_PLUGIN_CONFIG:=}   # Whether plugin configuration
+                                  # should be checked w.r.t. Scala version
 
 : ${SIGN_BUILD:=false}            # Should the IDE and its dependencies be signed. If you enable this, make sure to also provide a value for KEYSTORE_GIT_REPO and KEYSTORE_PASS, or the script will ask the user for these inputs
 : ${KEYSTORE_GIT_REPO:=}          # URL to the Keystore Git repository
@@ -165,7 +167,7 @@ case $SCALA_VERSION in
         scalasearch_scala_profile=2.11.x
         ECOSYSTEM_SCALA_VERSION=scala211
         REPO_SUFFIX=211x
-        if [[ $BUILD_PLUGINS ]]; then are_you_sure; fi
+        if [[ $BUILD_PLUGINS ]] && [[ -z $DONT_CHECK_PLUGIN_CONFIG ]]; then are_you_sure; fi
         ;;
 
     *)
