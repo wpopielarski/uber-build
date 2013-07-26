@@ -791,7 +791,7 @@ if [[ ( -z "$SBT_BRANCH" ) ]]; then
     assert_branch_in_repo_verbose ${SBT_BRANCH} ${SBT_GIT_REPO}
 fi
 
-if [[ ( $BUILD_PLUGINS ) && (-z "$WORKSHEET_BRANCH )" && ( -z "$PLAY_BRANCH" ) && ( -z "$SCALASEARCH_BRANCH" ) ]]
+if [[ ( $BUILD_PLUGINS ) && (-z "$WORKSHEET_BRANCH" ) && ( -z "$PLAY_BRANCH" ) && ( -z "$SCALASEARCH_BRANCH" ) ]]; then
     echo "You have \$BUILD_PLUGINS=$BUILD_PLUGINS and no plugin branch specified !"
     read -p "Do you want to build the Worksheet plugin ? [y/N]" response
     if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]
