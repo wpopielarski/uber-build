@@ -285,7 +285,7 @@ PLAY_BINARIES=${BASE_DIR}/${PLAY_DIR}/org.scala-ide.play2.update-site/target/sit
 SCALASEARCH_BINARIES=${BASE_DIR}/${SCALASEARCH_DIR}/org.scala.tools.eclipse.search.update-site/target/site/
 SDK_BINARIES=${BASE_DIR}/${TYPESAFE_IDE_DIR}/org.scala-ide.product/target/repository/
 
-if [[ $SIGN_BUILD ]]
+if $SIGN_BUILD
 then
     MAVEN_SIGN_ARGS=" -Djarsigner.storepass=${KEYSTORE_PASS} -Djarsigner.keypass=${KEYSTORE_PASS} -Djarsigner.keystore=/${KEYSTORE_PATH} "
 fi
@@ -418,7 +418,7 @@ function build_ide()
 
     cd ${SCALAIDE_DIR}
 
-    if [[ $SIGN_BUILD ]]
+    if $SIGN_BUILD
     then
       export SET_VERSIONS="true"
     fi
@@ -701,7 +701,7 @@ function checkout_git_repo()
 #                          SIGNING                            #
 ###############################################################
 
-if [[ $SIGN_BUILD ]]
+if $SIGN_BUILD
 then
     assert_executable_in_path ${KEYTOOL} # Check that keytool executable is available
     assert_version_tag_not_empty
@@ -909,7 +909,7 @@ build_refactoring
 build_scalariform
 build_ide
 
-if [[ $SIGN_BUILD ]]
+if $SIGN_BUILD
 then
     sign_ide
 fi
