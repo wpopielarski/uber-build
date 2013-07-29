@@ -256,7 +256,6 @@ function build_sbinary()
 
     # maven style for the toolchain build
     $SBT "reboot full" clean "show scala-instance" "set every crossScalaVersions := Seq(\"${SCALA_VERSION}\")" \
-        'set (version in core) ~= { v => v + "-pretending-SNAPSHOT" }' \
         'set every publishMavenStyle := true' \
         'set every resolvers := Seq("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")' \
         "set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
@@ -280,7 +279,7 @@ function build_sbt()
         'set every Util.includeTestDependencies := false' \
         "set every resolvers := Seq(\"Sonatype OSS Snapshots\" at \"https://oss.sonatype.org/content/repositories/snapshots\", \"local-maven\" at \"file://${LOCAL_REPO}\")" \
         'set artifact in (compileInterfaceSub, packageBin) := Artifact("compiler-interface")' \
-        'set (libraryDependencies in compilePersistSub) ~= { ld => ld map { case dep if (dep.organization == "org.scala-tools.sbinary") && (dep.name == "sbinary") => dep.copy(revision = (dep.revision + "-pretending-SNAPSHOT")) ; case dep => dep } }' \
+        'set (libraryDependencies in compilePersistSub) ~= { ld => ld map { case dep if (dep.organization == "org.scala-tools.sbinary") && (dep.name == "sbinary") => dep.copy(revision = (dep.revision + "-SNAPSHOT")) ; case dep => dep } }' \
         "set every publishTo := Some(Resolver.file(\"Local Maven\",  new File(\"${LOCAL_REPO}\")))" \
         'set every crossPaths := true' \
         'set every scalaBinaryVersion <<= scalaVersion.identity' \
