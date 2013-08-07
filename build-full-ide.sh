@@ -295,7 +295,7 @@ function build_toolchain()
       EXTRA_OPTIONS="-Dsbt.version=${SBT_VERSION}"
     fi
 
-    MAVEN_ARGS="-P ${eclipse_profile} -P ${scala_profile_ide} -Dmaven.repo.local=${LOCAL_REPO} ${MAVEN_EXTRA_ARGS} ${EXTRA_OPTIONS} clean install"
+    MAVEN_ARGS="-P ${eclipse_profile} -P ${scala_profile_ide} -P sbt-new -Dmaven.repo.local=${LOCAL_REPO} ${MAVEN_EXTRA_ARGS} ${EXTRA_OPTIONS} clean install"
     rm -rf ${SOURCE}/*
 
     cd ${SCALAIDE_DIR}
@@ -377,7 +377,7 @@ function build_ide()
       EXTRA_OPTIONS="-Dsbt.version=${SBT_VERSION}"
     fi
 
-    ./build-all.sh -P ${eclipse_profile} -P ${scala_profile_ide} -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root=file://${SOURCE} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} -Drepo.scala-refactoring=file://${SOURCE}/scala-refactoring-${REPO_SUFFIX} -Drepo.scalariform=file://${SOURCE}/scalariform-${REPO_SUFFIX} ${EXTRA_OPTIONS} clean install
+    ./build-all.sh -P ${eclipse_profile} -P ${scala_profile_ide} -Psbt-new -Dscala.version=${SCALA_VERSION} -Drepo.scala-ide.root=file://${SOURCE} -Dmaven.repo.local=${LOCAL_REPO} -Dversion.tag=${VERSION_TAG} -Drepo.scala-refactoring=file://${SOURCE}/scala-refactoring-${REPO_SUFFIX} -Drepo.scalariform=file://${SOURCE}/scalariform-${REPO_SUFFIX} ${EXTRA_OPTIONS} clean install
 
     cd ${BASE_DIR}
 }
