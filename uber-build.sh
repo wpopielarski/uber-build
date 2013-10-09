@@ -1133,7 +1133,7 @@ function publishPlugin () {
   ZIP_NAME=site-${TIMESTAMP}.zip
   zip -rq ${ZIP_NAME} site
 
-  PLUGIN_UPLOAD_DIR="scala-ide.dreamhosters.com/plugins/$2/release/${ECOSYSTEM_ECLIPSE_VERSION}/${SHORT_SCALA_VERSION}.x"
+  PLUGIN_UPLOAD_DIR="scala-ide.dreamhosters.com/plugins/$2/releases/${ECOSYSTEM_ECLIPSE_VERSION}/${SHORT_SCALA_VERSION}.x"
   scp ${ZIP_NAME} ${SSH_ACCOUNT}:${PLUGIN_UPLOAD_DIR}
   ssh ${SSH_ACCOUNT} "cd ${PLUGIN_UPLOAD_DIR}; rm -rf site; unzip -q ${ZIP_NAME}"
 
@@ -1142,8 +1142,7 @@ function publishPlugin () {
 function stepPublish () {
   printStep "Publish"
 
-#  SSH_ACCOUNT="scalaide@scala-ide.dreamhosters.com"
-  SSH_ACCOUNT="luc@localhost"
+  SSH_ACCOUNT="scalaide@scala-ide.dreamhosters.com"
 
   info "generate base ecosystem repo"
 
