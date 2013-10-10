@@ -536,7 +536,7 @@ function stepCheckPrerequisites () {
   fi
 
 # ant is need to rebuild Scala
-  if ${SCALA_REBUILD}
+  if ${VALIDATOR}
   then
     if [ -n "${ANT}" ]
     then
