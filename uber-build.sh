@@ -360,13 +360,15 @@ function printErrorUsageAndExit () {
 function stepCheckArguments () {
   printStep "Check arguments"
 
-  if [ $# -gt 2 ]
+  if [ $# -gt 3 ]
   then
     printErrorUsageAndExit "Wrong arguments"
   fi
 
   CONFIG_FILE="$1"
   ARG_GIT_HASH=$2
+  ARG_SCALA_VERSION=$3
+
   if [ ! -f "${CONFIG_FILE}" ]
   then
     printErrorUsageAndExit "'${CONFIG_FILE}' doesn't exists or is not a file"
@@ -396,6 +398,12 @@ function stepLoadConfig () {
   if [ -n "${ARG_GIT_HASH}" ]
   then
     SCALA_GIT_HASH="${ARG_GIT_HASH}"
+  fi
+
+# override the Scala version with the one given as argument, if available
+  if [ -n "${ARG_SCALA_VERSION}" ]
+  then
+    SCALA_VERSION="${ARG_SCALA_VERSION}"
   fi
 
 }
