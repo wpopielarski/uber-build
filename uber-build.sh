@@ -837,45 +837,6 @@ function stepZinc () {
   SBT_UID=${FULL_SBT_VERSION}
 }
 
-##################
-# Build toolchain
-##################
-
-function stepToolchain () {
-  printStep "Build toolchain"
-
-  fetchGitBranch "${SCALA_IDE_DIR}" "${SCALA_IDE_GIT_REPO}" "${SCALA_IDE_GIT_BRANCH}" NaN
-
-  cd "${SCALA_IDE_DIR}"
-
-  SCALA_IDE_UID=$(git rev-parse HEAD)
-
-  BUILD_TOOLCHAIN_P2_ID=toolchain/${SCALA_IDE_UID}/${SCALA_UID}/${SBT_UID}
-
-  checkP2Cache ${BUILD_TOOLCHAIN_P2_ID}
-  if [ $RES != 0 ]
-  then
-    info "building toolchain"
-
-    BUILD_TOOLCHAIN_MAVEN_ARGS="-P${ECLIPSE_PROFILE} -P${SCALA_PROFILE} -Psbt-new -Dscala.version=${FULL_SCALA_VERSION} -Dsbt.version=${SBT_VERSION} -Dsbt.ide.version=${FULL_SBT_VERSION}"
-
-    mvn "${MAVEN_ARGS[@]}" ${BUILD_TOOLCHAIN_MAVEN_ARGS} clean install
-
-    cd "${SCALA_IDE_DIR}/org.scala-ide.build-toolchain"
-    mvn "${MAVEN_ARGS[@]}" ${BUILD_TOOLCHAIN_MAVEN_ARGS} clean install
-
-    cd "${SCALA_IDE_DIR}/org.scala-ide.toolchain.update-site"
-    mvn "${MAVEN_ARGS[@]}" ${BUILD_TOOLCHAIN_MAVEN_ARGS} clean verify
-
-    cd "${TMP_DIR}"
-    rm -rf *
-    mkdir fakeSite
-    cp -r "${SCALA_IDE_DIR}/org.scala-ide.toolchain.update-site/org.scala-ide.scala.update-site/target/site" "fakeSite/scala-eclipse-toolchain-osgi-${SCALA_REPO_SUFFIX}"
-
-    storeP2Cache ${BUILD_TOOLCHAIN_P2_ID} "${TMP_DIR}/fakeSite"
-  fi
-}
-
 ####################
 # Scala Refactoring
 ####################
@@ -899,7 +860,6 @@ function stepScalaRefactoring () {
     mvn "${MAVEN_ARGS[@]}" \
       -P ${SCALA_PROFILE} \
       -Dscala.version=${FULL_SCALA_VERSION} \
-      -Drepo.scala-ide=$(getP2CacheURL ${BUILD_TOOLCHAIN_P2_ID}) \
       -Dgit.hash=${SCALA_REFACTORING_UID} \
       clean \
       verify
@@ -931,7 +891,6 @@ function stepScalariform () {
     mvn "${MAVEN_ARGS[@]}" \
       -P ${SCALA_PROFILE} \
       -Dscala.version=${FULL_SCALA_VERSION} \
-      -Drepo.scala-ide=$(getP2CacheURL ${BUILD_TOOLCHAIN_P2_ID}) \
       -Dgit.hash=${SCALARIFORM_UID} \
       clean \
       verify
@@ -1232,7 +1191,6 @@ stepCheckConfiguration
 stepScala
 
 stepZinc
-stepToolchain
 stepScalaRefactoring
 stepScalariform
 
