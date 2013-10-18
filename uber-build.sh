@@ -910,6 +910,8 @@ function stepScalaIDE () {
 
   cd "${SCALA_IDE_DIR}"
 
+  SCALA_IDE_UID=$(git rev-parse HEAD)
+
   if $SIGN_ARTIFACTS
   then
     SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}-S/${SCALA_UID}/${SBT_UID}/${SCALA_REFACTORING_UID}/${SCALARIFORM_UID}
