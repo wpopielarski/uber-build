@@ -476,12 +476,12 @@ function stepSetFlags () {
       VALIDATOR=true
       USE_PROVIDED_MAVEN_TGZ=true
       ;;
-    scala-pr-rebulid )
+    scala-pr-rebuild )
       VALIDATOR=true
       SCALA_REBUILD=true
       ;;
     * )
-      missingParameterChoice "OPERATION" "release, release-dryrun, scala-pr-validator, scala-pr-rebulid"
+      missingParameterChoice "OPERATION" "release, release-dryrun, scala-pr-validator, scala-pr-rebuild"
       ;;
   esac
 
