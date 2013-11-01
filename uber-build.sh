@@ -423,6 +423,8 @@ function stepSetupLogging () {
         mkdir -p "${BUILD_DIR}"
         LOG_FILE="${BUILD_DIR}/log-${TIMESTAMP}.txt"
         > "${LOG_FILE}"
+        rm -rf "${BUILD_DIR}/log.txt"
+        ln -s "${LOG_FILE}" "${BUILD_DIR}/log.txt"
         exec 3>> "${LOG_FILE}" 4>&1 5>&2 6>&1
 
         exec 1>&3 2> >(tee -a /dev/fd/3 >&5) 6> >(tee -a /dev/fd/3 >&4)
