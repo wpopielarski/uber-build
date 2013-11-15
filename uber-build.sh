@@ -449,7 +449,6 @@ function stepSetFlags () {
   RELEASE=false
   DRY_RUN=true
   VALIDATOR=false
-  USE_PROVIDED_MAVEN_TGZ=false
   SCALA_REBUILD=false
   SIGN_ARTIFACTS=false
   WORKSHEET_PLUGIN=false
@@ -476,7 +475,6 @@ function stepSetFlags () {
       ;;
     scala-pr-validator )
       VALIDATOR=true
-      USE_PROVIDED_MAVEN_TGZ=true
       ;;
     scala-pr-rebuild )
       VALIDATOR=true
@@ -731,67 +729,32 @@ function stepScala () {
     checkAvailability "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
     if [ $RES != 0 ]
     then
-        if ${USE_PROVIDED_MAVEN_TGZ}
-        then
-            if [ -f "${CURRENT_DIR}/maven.tgz" ]
-            then
-                cp "${CURRENT_DIR}/maven.tgz" ${TMP_DIR}
-                cd ${TMP_DIR}
-            else
-                error "Could not find maven.tgz file in ${CURRENT_DIR}."
-            fi
-        else
-            # the scala build is not available locally. check in scala-webapps.
-            HTTP_STATUS=$(curl --write-out %{http_code} --silent --output /dev/null "http://scala-webapps.epfl.ch/artifacts/${SCALA_GIT_HASH}/")
-            if [ ${HTTP_STATUS} == 200 ]
-            then
-                info "Deploying Scala version from scala-webapps"
-                cd $TMP_DIR
-                rm -rf *
-                wget "http://scala-webapps.epfl.ch/artifacts/${SCALA_GIT_HASH}/maven.tgz"
-            fi
-        fi
+      if ! ${SCALA_REBUILD}
+      then
+          error "Scala binaries with git hash ${SCALA_GIT_HASH} were not found on scala-webapps, nor maven.tgz was provided, and will not be rebuilt locally."
+      fi
 
-        if [ -f $FILE maven.tgz ]
-        then
-            tar xf maven.tgz
-            cd latest
-            ${ANT_BIN} \
-                -Dmaven.version.number="${FULL_SCALA_VERSION}" \
-                -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
-                -Dmaven.version.suffix="${SCALA_VERSION_SUFFIX}" \
-                deploy.local
+      info "Building Scala from source"
 
-            checkNeeded "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
-        else
+      fetchGitBranch "${SCALA_DIR}" "${SCALA_GIT_REPO}" "${SCALA_GIT_HASH}" NaN "pr"
 
-            if ! ${SCALA_REBUILD}
-            then
-                error "Scala binaries with git hash ${SCALA_GIT_HASH} were not found on scala-webapps, nor maven.tgz was provided, and will not be rebuilt locally."
-            fi
+      cd "${SCALA_DIR}"
 
-            info "Building Scala from source"
+      ${ANT_BIN} -Divy.cache.ttl.default=eternal all.clean
+      git clean -fxd
+      ${ANT_BIN} \
+          distpack-maven-opt \
+          -Darchives.skipxz=true \
+          -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
+          -Dversion.suffix="${SCALA_VERSION_SUFFIX}"
 
-            fetchGitBranch "${SCALA_DIR}" "${SCALA_GIT_REPO}" "${SCALA_GIT_HASH}" NaN "pr"
+      cd dists/maven/latest
+      ${ANT_BIN} \
+          -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
+          -Dmaven.version.suffix="-${SCALA_VERSION_SUFFIX}" \
+          deploy.local
 
-            cd "${SCALA_DIR}"
-
-            ${ANT_BIN} -Divy.cache.ttl.default=eternal all.clean
-            git clean -fxd
-            ${ANT_BIN} \
-                distpack-maven-opt \
-                -Darchives.skipxz=true \
-                -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
-                -Dversion.suffix="${SCALA_VERSION_SUFFIX}"
-
-            cd dists/maven/latest
-            ${ANT_BIN} \
-                -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
-                -Dmaven.version.suffix="-${SCALA_VERSION_SUFFIX}" \
-                deploy.local
-
-            checkNeeded "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
-        fi
+      checkNeeded "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
     fi
     SCALA_UID=${SCALA_GIT_HASH}
   fi
