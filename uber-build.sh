@@ -491,6 +491,7 @@ function stepSetFlags () {
       ;;
     scala-pr-validator )
       SCALA_VALIDATOR=true
+      SBT_REBUILD=true
       ;;
     scala-pr-rebuild )
       SCALA_VALIDATOR=true
@@ -633,7 +634,8 @@ function stepCheckConfiguration () {
   checkParameters "SCRIPT_DIR" "BUILD_DIR" "LOCAL_M2_REPO" "P2_CACHE_DIR"
 
 # configure maven here. Needed for some checks
-  MAVEN_ARGS=(-e -B -U "-Dmaven.repo.local=${LOCAL_M2_REPO}")
+# preserve MAVEN_ARGS coming in from outside
+  MAVEN_ARGS=(${MAVEN_ARGS} -e -B -U "-Dmaven.repo.local=${LOCAL_M2_REPO}")
 
   mkdir -p "${BUILD_DIR}"
 
@@ -649,6 +651,10 @@ function stepCheckConfiguration () {
   if ${SBT_REBUILD}
   then
     checkParameters "ZINC_BUILD_DIR" "ZINC_BUILD_GIT_REPO" "ZINC_BUILD_GIT_BRANCH"
+    if [ -n "${prRepoUrl}" ]
+    then
+      ZINC_BUILD_ARGS="-DprRepoUrl=${prRepoUrl}"
+    fi
   fi
 
   checkParameters "ECLIPSE_PLATFORM"
@@ -747,6 +753,7 @@ function stepScala () {
   if ${SCALA_VALIDATOR}
   then
     FULL_SCALA_VERSION=${SCALA_VERSION}
+    SCALA_VERSIONS_PROPERTIES_PATH=${CURRENT_DIR}/versions.properties
   fi
 
   if ${SCALA_REBUILD}
@@ -854,7 +861,7 @@ function stepZinc () {
       SCALA_VERSION="${FULL_SCALA_VERSION}" \
         PUBLISH_REPO="file://${LOCAL_M2_REPO}" \
         LOCAL_M2_REPO="${LOCAL_M2_REPO}" \
-        bin/dbuild sbt-on-${SHORT_SCALA_VERSION}.x
+        bin/dbuild ${ZINC_BUILD_ARGS} sbt-on-${SHORT_SCALA_VERSION}.x
 
       checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
     fi
