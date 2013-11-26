@@ -24,7 +24,7 @@ The current build works for Scala 2.10.x and 2.11.x, and Scala IDE 4.0.x.
 ## Invocation
 
 ```bash
-./uber-build <config_file> [scala_git_hash] [scala_version]
+./uber-build <config_file> [scala_version] [scala_git_hash]
 ```
 
 * `config_file` - the config file containing the build parameters. The uncommented lines override the values from `config/default.conf`.
@@ -38,11 +38,11 @@ Builds Scala IDE from any source version of Scala.
 * base config file: `scala-local-build.conf`
 * relevant config parameters:
   * `SCALA_GIT_REPO` - modify to use Scala hash from a different repository
-* extra command line parameters: `<scala_git_hash> <scala_version>`
+* extra command line parameters: `<scala_version> <scala_git_hash>`
 
 ## release, release-dryrun
 
-Generate and publish (only with `release`) a Scala IDE release, build on a released version of Scala.
+Generates and publishes (only with `release`) a Scala IDE release, build on a released version of Scala.
 
 * example config files: `release-30x.conf`, `release-40x-210.conf`
 * relevant config parameters:
@@ -55,7 +55,7 @@ Generate and publish (only with `release`) a Scala IDE release, build on a relea
 
 ## nightly
 
-Build all Scala IDE projects from the master branches. Used nightly to check that all masters build together.
+Builds all Scala IDE projects from the master branches. Used nightly to check that all masters build together.
 
 * example config files: `nightly-4.0.x-juno-2.10.conf`
 * relevant config parameters:
@@ -65,7 +65,33 @@ Build all Scala IDE projects from the master branches. Used nightly to check tha
 
 ## scala-pr-validator
 
+Runs a build up to Scala IDE. The goal is to check that a Scala PR is not going to break Scala IDE and its dependencies.
 (to document)
+
+* config file: `validator.conf`
+* config parameters should not be modified.
+* This build requires an extra maven repository to fetch pre-build Scala binaries. The simplest way to set it up
+is to add the following in the `~/.m2/settings.xml` file.
+```xml
+    <profile>
+      <id>pr-scala</id>
+      <repositories>
+        <repository>
+          <id>scala-pr-builds</id>
+          <url>http://private-repo.typesafe.com/typesafe/scala-pr-validation-snapshots/</url>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+        </repository>
+      </repositories>
+    </profile>
+```
+* to enable the profile, extra Maven parameters are needed. Use:
+```bash
+export MAVEN_ARGS="-Ppr-scala"
+```
+* extra command line parameters: `<scala_version>`
+
 
 ## scala-pr-rebuild
 
