@@ -1191,17 +1191,17 @@ function stepPublish () {
   scp ${ZIP_NAME} ${SSH_ACCOUNT}:${ECOSYSTEM_UPLOAD_DIR}
   ssh ${SSH_ACCOUNT} "cd ${ECOSYSTEM_UPLOAD_DIR}; rm -rf base; unzip -q ${ZIP_NAME}"
 
-  if ${WORKSHEET}
+  if ${WORKSHEET_PLUGIN}
   then
     publishPlugin "Worksheet" "worksheet" "WORKSHEET_PLUGIN"
   fi
 
-  if ${PLAY}
+  if ${PLAY_PLUGIN}
   then
     publishPlugin "Play" "scala-ide-play2" "PLAY_PLUGIN"
   fi
 
-  if ${SEARCH}
+  if ${SEARCH_PLUGIN}
   then
     publishPlugin "Search" "scala-search" "SEARCH_PLUGIN"
   fi
