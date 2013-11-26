@@ -187,14 +187,19 @@ function checkExecutableOnPath () {
 }
 
 ########################
-# p2 repo cache support
+# cache support
 ########################
 
-# Check if a p2 repo is available in the cache.
-# $1 - p2 cache id
+# Check if a directory is available in the cache.
+# $1 - cache id
+# $2 - force cache usage ("true"|"false", optional)
 # return value in $RES
-function checkP2Cache () {
-  if ${WITH_CACHE}
+#   0 - found
+#   1 - not found
+#   2 - caching disabled
+function checkCache () {
+  FORCE_CACHE="${2:-false}"
+  if ${FORCE_CACHE} || ${WITH_CACHE}
   then
     if [ -d "${P2_CACHE_DIR}/$1" ]
     then
@@ -206,15 +211,17 @@ function checkP2Cache () {
     fi
   else
     debug "caching disabled"
-    RES=1
+    RES=2
   fi
 }
 
-# Store a p2 repo in the cache.
-# $1 - p2 cache id
-# $2 - repo to cache
-function storeP2Cache () {
-  if ${WITH_CACHE}
+# Store a directory in the cache.
+# $1 - cache id
+# $2 - directory to cache
+# $3 - force cache usage ("true"|"false", optional)
+function storeCache () {
+  FORCE_CACHE="${2:-false}"
+  if ${FORCE_CACHE} || ${WITH_CACHE}
   then
     mkdir -p "$(dirname "${P2_CACHE_DIR}/$1")"
     cp -r "$2" "${P2_CACHE_DIR}/$1"
@@ -228,8 +235,10 @@ function storeP2Cache () {
 
 # Return the location in the file system of the cached p2 repo.
 # $1 - p2 cache id
-function getP2CacheLocation () {
-  if ${WITH_CACHE}
+# $2 - force cache usage ("true"|"false", optional)
+function getCacheLocation () {
+  FORCE_CACHE="${2:-false}"
+  if ${FORCE_CACHE} || ${WITH_CACHE}
   then
     echo "${P2_CACHE_DIR}/$1"
   else
@@ -239,8 +248,10 @@ function getP2CacheLocation () {
 
 # Return the location in the file system of the cached p2 repo.
 # $1 - p2 cache id
-function getP2CacheURL () {
-  if ${WITH_CACHE}
+# $2 - force cache usage ("true"|"false", optional)
+function getCacheURL () {
+  FORCE_CACHE="${2:-false}"
+  if ${FORCE_CACHE} || ${WITH_CACHE}
   then
     FOLDER="${P2_CACHE_DIR}/$1"
   else
@@ -448,14 +459,18 @@ function stepSetFlags () {
 # the flags
   RELEASE=false
   DRY_RUN=true
-  VALIDATOR=false
-  USE_PROVIDED_MAVEN_TGZ=false
+  SCALA_RELEASE=false
+  SCALA_VALIDATOR=false
   SCALA_REBUILD=false
+  SBT_RELEASE=false
+  SBT_REBUILD=false
   SIGN_ARTIFACTS=false
   WORKSHEET_PLUGIN=false
   PLAY_PLUGIN=false
   SEARCH_PLUGIN=false
   PUBLISH=false
+# set in during check configuration 
+  USE_SCALA_VERSIONS_PROPERTIES_FILE=false
 
 # Check what to do
   case "${OPERATION}" in
@@ -475,15 +490,19 @@ function stepSetFlags () {
       SIGN_ARTIFACTS=false
       ;;
     scala-pr-validator )
-      VALIDATOR=true
-      USE_PROVIDED_MAVEN_TGZ=true
+      SCALA_VALIDATOR=true
       ;;
     scala-pr-rebuild )
-      VALIDATOR=true
+      SCALA_VALIDATOR=true
       SCALA_REBUILD=true
+      SBT_REBUILD=true
+      ;;
+    scala-local-build )
+      SCALA_REBUILD=true
+      SBT_REBUILD=true
       ;;
     * )
-      missingParameterChoice "OPERATION" "release, release-dryrun, scala-pr-validator, scala-pr-rebuild"
+      missingParameterChoice "OPERATION" "release, release-dryrun, scala-pr-validator, scala-pr-rebuild, scala-local-build"
       ;;
   esac
 
@@ -548,7 +567,7 @@ function stepCheckPrerequisites () {
   fi
 
 # ant is need to rebuild Scala
-  if ${VALIDATOR}
+  if ${SCALA_REBUILD}
   then
     if [ -n "${ANT}" ]
     then
@@ -618,18 +637,19 @@ function stepCheckConfiguration () {
 
   mkdir -p "${BUILD_DIR}"
 
-  if ${RELEASE}
-  then
-    checkParameters "SCALA_VERSION"
-  fi
+  checkParameters "SCALA_VERSION"
 
-  if ${VALIDATOR}
+  if ${SCALA_REBUILD}
   then
-    checkParameters "SCALA_GIT_REPO" "SCALA_VERSION" "SCALA_GIT_HASH" "SCALA_DIR"
-    checkParameters "ZINC_BUILD_DIR" "ZINC_BUILD_GIT_REPO" "ZINC_BUILD_GIT_BRANCH"
+    checkParameters "SCALA_GIT_REPO" "SCALA_GIT_HASH" "SCALA_DIR"
   fi
 
   checkParameters "SBT_VERSION"
+
+  if ${SBT_REBUILD}
+  then
+    checkParameters "ZINC_BUILD_DIR" "ZINC_BUILD_GIT_REPO" "ZINC_BUILD_GIT_BRANCH"
+  fi
 
   checkParameters "ECLIPSE_PLATFORM"
   checkParameters "SCALA_IDE_DIR" "SCALA_IDE_GIT_REPO" "SCALA_IDE_GIT_BRANCH" "SCALA_IDE_VERSION_TAG"
@@ -680,11 +700,15 @@ function stepCheckConfiguration () {
       SCALA_PROFILE="scala-2.10.x"
       SCALA_REPO_SUFFIX="210x"
       ECOSYSTEM_SCALA_VERSION="scala210"
+      SHORT_SCALA_VERSION="2.10"
+      USE_SCALA_VERSIONS_PROPERTIES_FILE=false
       ;;
     2.11.* )
       SCALA_PROFILE="scala-2.11.x"
       SCALA_REPO_SUFFIX="211x"
       ECOSYSTEM_SCALA_VERSION="scala211"
+      SHORT_SCALA_VERSION="2.11"
+      USE_SCALA_VERSIONS_PROPERTIES_FILE=true
       ;;
     * )
       error "Not supported version of Scala: ${SCALA_VERSION}."
@@ -716,86 +740,81 @@ function stepScala () {
 # for releases, already existing Scala binaries are used.
   if ${RELEASE}
   then
-    checkNeeded "org.scala-lang" "scala-compiler" "${SCALA_VERSION}"
     FULL_SCALA_VERSION=${SCALA_VERSION}
-
-    SCALA_UID=$(osgiVersion "org.scala-lang" "scala-compiler" "${SCALA_VERSION}")
   fi
 
 # for Scala pr validation, custom build Scala binaries are used.
-  if ${VALIDATOR}
+  if ${SCALA_VALIDATOR}
+  then
+    FULL_SCALA_VERSION=${SCALA_VERSION}
+  fi
+
+  if ${SCALA_REBUILD}
   then
     FULL_SCALA_VERSION="${SCALA_VERSION}-${SCALA_GIT_HASH}-SNAPSHOT"
     SCALA_VERSION_SUFFIX="-$SCALA_GIT_HASH-SNAPSHOT"
 
+    SCALA_P2_ID=scala/${SCALA_GIT_HASH}
+
     checkAvailability "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
-    if [ $RES != 0 ]
+    if [ $RES = 0 ]
     then
-        if ${USE_PROVIDED_MAVEN_TGZ}
+      if ${USE_SCALA_VERSIONS_PROPERTIES_FILE}
+      then
+        checkCache ${SCALA_P2_ID} "true"
+        if [ $RES != 0 ]
         then
-            if [ -f "${CURRENT_DIR}/maven.tgz" ]
-            then
-                cp "${CURRENT_DIR}/maven.tgz" ${TMP_DIR}
-                cd ${TMP_DIR}
-            else
-                error "Could not find maven.tgz file in ${CURRENT_DIR}."
-            fi
-        else
-            # the scala build is not available locally. check in scala-webapps.
-            HTTP_STATUS=$(curl --write-out %{http_code} --silent --output /dev/null "http://scala-webapps.epfl.ch/artifacts/${SCALA_GIT_HASH}/")
-            if [ ${HTTP_STATUS} == 200 ]
-            then
-                info "Deploying Scala version from scala-webapps"
-                cd $TMP_DIR
-                rm -rf *
-                wget "http://scala-webapps.epfl.ch/artifacts/${SCALA_GIT_HASH}/maven.tgz"
-            fi
+          error "Cannot find cached version of versions.properties for ${SCALA_P2_ID}"
         fi
+        SCALA_VERSIONS_PROPERTIES_PATH=$(getCacheLocation ${SCALA_P2_ID} "true")/versions.properties
+      fi
+    else
+      info "Building Scala from source"
 
-        if [ -f $FILE maven.tgz ]
-        then
-            tar xf maven.tgz
-            cd latest
-            ${ANT_BIN} \
-                -Dmaven.version.number="${FULL_SCALA_VERSION}" \
-                -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
-                -Dmaven.version.suffix="${SCALA_VERSION_SUFFIX}" \
-                deploy.local
+      fetchGitBranch "${SCALA_DIR}" "${SCALA_GIT_REPO}" "${SCALA_GIT_HASH}" NaN "pr"
 
-            checkNeeded "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
-        else
+      cd "${SCALA_DIR}"
 
-            if ! ${SCALA_REBUILD}
-            then
-                error "Scala binaries with git hash ${SCALA_GIT_HASH} were not found on scala-webapps, nor maven.tgz was provided, and will not be rebuilt locally."
-            fi
+      ${ANT_BIN} -Divy.cache.ttl.default=eternal all.clean
+      git clean -fxd
+      ${ANT_BIN} \
+          distpack-maven-opt \
+          -Darchives.skipxz=true \
+          -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
+          -Dversion.suffix="${SCALA_VERSION_SUFFIX}"
 
-            info "Building Scala from source"
+      cd dists/maven/latest
+      ${ANT_BIN} \
+          -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
+          -Dmaven.version.suffix="-${SCALA_VERSION_SUFFIX}" \
+          deploy.local
 
-            fetchGitBranch "${SCALA_DIR}" "${SCALA_GIT_REPO}" "${SCALA_GIT_HASH}" NaN "pr"
+      if ${USE_SCALA_VERSIONS_PROPERTIES_FILE}
+      then
+        # caching the versions file
+        cd "${TMP_DIR}"
+        rm -rf *
+        mkdir tmp
+        cp ${SCALA_DIR}/buildcharacter.properties tmp/versions.properties
+        storeCache ${SCALA_P2_ID} tmp "true"
+        SCALA_VERSIONS_PROPERTIES_PATH=$(getCacheLocation ${SCALA_P2_ID})/versions.properties
+      fi
 
-            cd "${SCALA_DIR}"
-
-            ${ANT_BIN} -Divy.cache.ttl.default=eternal all.clean
-            git clean -fxd
-            ${ANT_BIN} \
-                distpack-maven-opt \
-                -Darchives.skipxz=true \
-                -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
-                -Dversion.suffix="${SCALA_VERSION_SUFFIX}"
-
-            cd dists/maven/latest
-            ${ANT_BIN} \
-                -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
-                -Dmaven.version.suffix="-${SCALA_VERSION_SUFFIX}" \
-                deploy.local
-
-            checkNeeded "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
-        fi
     fi
-    SCALA_UID=${SCALA_GIT_HASH}
+
   fi
-  SHORT_SCALA_VERSION=$(echo ${FULL_SCALA_VERSION} | awk -F '.' '{print $1"."$2;}')
+
+  if ${SBT_REBUILD} && ${USE_SCALA_VERSIONS_PROPERTIES_FILE}
+  then
+    if [ ! -f "${SCALA_VERSIONS_PROPERTIES_PATH}" ]
+    then
+      error "unable to find the versions file at '${SCALA_VERSIONS_PROPERTIES_PATH}'"
+    fi
+  fi
+
+  checkNeeded "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
+
+  SCALA_UID=$(osgiVersion "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}")
 }
 
 #######
@@ -815,7 +834,7 @@ function stepZinc () {
   fi
 
 # for Scala pr validation, custom build sbt binaries are used.
-  if ${VALIDATOR}
+  if ${SBT_REBUILD}
   then
     FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE-SNAPSHOT"
     checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
@@ -826,6 +845,11 @@ function stepZinc () {
       fetchGitBranch "${ZINC_BUILD_DIR}" "${ZINC_BUILD_GIT_REPO}" "${ZINC_BUILD_GIT_BRANCH}" NaN
 
       cd "${ZINC_BUILD_DIR}"
+
+      if $USE_SCALA_VERSIONS_PROPERTIES_FILE
+      then
+        cp "${SCALA_VERSIONS_PROPERTIES_PATH}" .
+      fi
 
       SCALA_VERSION="${FULL_SCALA_VERSION}" \
         PUBLISH_REPO="file://${LOCAL_M2_REPO}" \
@@ -854,7 +878,7 @@ function stepScalaRefactoring () {
 
   SCALA_REFACTORING_P2_ID=scala-refactoring/${SCALA_REFACTORING_UID}/${SCALA_IDE_UID}/${SCALA_UID}
 
-  checkP2Cache ${SCALA_REFACTORING_P2_ID}
+  checkCache ${SCALA_REFACTORING_P2_ID}
   if [ $RES != 0 ]
   then
     info "Building Scala Refactoring"
@@ -866,7 +890,7 @@ function stepScalaRefactoring () {
       clean \
       verify
 
-    storeP2Cache ${SCALA_REFACTORING_P2_ID} "${SCALA_REFACTORING_DIR}/org.scala-refactoring.update-site/target/site"
+    storeCache ${SCALA_REFACTORING_P2_ID} "${SCALA_REFACTORING_DIR}/org.scala-refactoring.update-site/target/site"
   fi
 }
 
@@ -885,7 +909,7 @@ function stepScalariform () {
 
   SCALARIFORM_P2_ID=scalariform/${SCALARIFORM_UID}/${SCALA_IDE_UID}/${SCALA_UID}
 
-  checkP2Cache ${SCALARIFORM_P2_ID}
+  checkCache ${SCALARIFORM_P2_ID}
   if [ $RES != 0 ]
   then
     info "Building Scalariform"
@@ -897,7 +921,7 @@ function stepScalariform () {
       clean \
       verify
 
-    storeP2Cache ${SCALARIFORM_P2_ID} "${SCALARIFORM_DIR}/scalariform.update/target/site"
+    storeCache ${SCALARIFORM_P2_ID} "${SCALARIFORM_DIR}/scalariform.update/target/site"
   fi
 }
 
@@ -921,7 +945,7 @@ function stepScalaIDE () {
     SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}/${SCALA_UID}/${SBT_UID}/${SCALA_REFACTORING_UID}/${SCALARIFORM_UID}
   fi
 
-  checkP2Cache ${SCALA_IDE_P2_ID}
+  checkCache ${SCALA_IDE_P2_ID}
   if [ $RES != 0 ]
   then
     info "Building Scala IDE"
@@ -942,8 +966,8 @@ function stepScalaIDE () {
       -Dversion.tag=${SCALA_IDE_VERSION_TAG} \
       -Dsbt.version=${SBT_VERSION} \
       -Dsbt.ide.version=${FULL_SBT_VERSION} \
-      -Drepo.scala-refactoring=$(getP2CacheURL ${SCALA_REFACTORING_P2_ID}) \
-      -Drepo.scalariform=$(getP2CacheURL ${SCALARIFORM_P2_ID}) \
+      -Drepo.scala-refactoring=$(getCacheURL ${SCALA_REFACTORING_P2_ID}) \
+      -Drepo.scalariform=$(getCacheURL ${SCALARIFORM_P2_ID}) \
       clean \
       install
 
@@ -954,7 +978,7 @@ function stepScalaIDE () {
       ./plugin-signing.sh "${KEYSTORE_DIR}/typesafe.keystore" typesafe ${KEYSTORE_PASS} ${KEYSTORE_PASS}
     fi
 
-    storeP2Cache ${SCALA_IDE_P2_ID} "${SCALA_IDE_DIR}/org.scala-ide.sdt.update-site/target/site"
+    storeCache ${SCALA_IDE_P2_ID} "${SCALA_IDE_DIR}/org.scala-ide.sdt.update-site/target/site"
   fi
 }
 
@@ -984,7 +1008,7 @@ function stepPlugin () {
 
   eval $3_P2_ID=${P2_ID}
 
-  checkP2Cache ${P2_ID}
+  checkCache ${P2_ID}
   if [ $RES != 0 ]
   then
     info "Building $1"
@@ -995,7 +1019,7 @@ function stepPlugin () {
       -Pset-versions \
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
-      -Drepo.scala-ide=$(getP2CacheURL ${SCALA_IDE_P2_ID}) \
+      -Drepo.scala-ide=$(getCacheURL ${SCALA_IDE_P2_ID}) \
       -Dscala.version=${FULL_SCALA_VERSION} \
       -Dtycho.style=maven \
       --non-recursive \
@@ -1005,7 +1029,7 @@ function stepPlugin () {
       -Dtycho.localArtifacts=ignore \
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
-      -Drepo.scala-ide=$(getP2CacheURL ${SCALA_IDE_P2_ID}) \
+      -Drepo.scala-ide=$(getCacheURL ${SCALA_IDE_P2_ID}) \
       -Dscala.version=${FULL_SCALA_VERSION} \
       -Dversion.tag=$7 \
       ${MAVEN_SIGN_ARGS[@]} \
@@ -1013,7 +1037,7 @@ function stepPlugin () {
       clean \
       verify
 
-    storeP2Cache ${P2_ID} *update-site/target/site
+    storeCache ${P2_ID} *update-site/target/site
   fi
 }
 
@@ -1047,7 +1071,7 @@ function stepProduct () {
     PRODUCT_P2_ID=${PRODUCT_P2_ID}/S-${SEARCH_PLUGIN_UID}
   fi
 
-  checkP2Cache ${PRODUCT_P2_ID}
+  checkCache ${PRODUCT_P2_ID}
   if [ $RES != 0 ]
   then
     info "Generate merged update site for Product build"
@@ -1055,21 +1079,21 @@ function stepProduct () {
     rm -rf "${TMP_DIR}"/*
     PRODUCT_BUILD_P2_REPO="${TMP_DIR}/p2-repo-for-product"
 
-    cp -r "$(getP2CacheLocation ${SCALA_IDE_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
+    cp -r "$(getCacheLocation ${SCALA_IDE_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
 
     if ${WORKSHEET_PLUGIN}
     then
-      mergeP2Repo "$(getP2CacheURL ${WORKSHEET_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
+      mergeP2Repo "$(getCacheURL ${WORKSHEET_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
     fi
 
     if ${PLAY_PLUGIN}
     then
-      mergeP2Repo "$(getP2CacheLocation ${PLAY_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
+      mergeP2Repo "$(getCacheLocation ${PLAY_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
     fi
 
     if ${SEARCH_PLUGIN}
     then
-      mergeP2Repo "$(getP2CacheLocation ${SEARCH_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
+      mergeP2Repo "$(getCacheLocation ${SEARCH_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
     fi
 
     info "Build Product"
@@ -1104,7 +1128,7 @@ function stepProduct () {
       clean \
       package
 
-    storeP2Cache ${PRODUCT_P2_ID} "${PRODUCT_DIR}/org.scala-ide.product/target/repository"
+    storeCache ${PRODUCT_P2_ID} "${PRODUCT_DIR}/org.scala-ide.product/target/repository"
   fi
 }
 
@@ -1121,7 +1145,7 @@ function publishPlugin () {
   cd "${TMP_DIR}"
   rm -rf *
   P2_ID_VAR_NAME=$3_P2_ID
-  cp -r "$(getP2CacheLocation ${!P2_ID_VAR_NAME})" site
+  cp -r "$(getCacheLocation ${!P2_ID_VAR_NAME})" site
   ZIP_NAME=site-${TIMESTAMP}.zip
   zip -rq ${ZIP_NAME} site
 
@@ -1142,11 +1166,11 @@ function stepPublish () {
   ECOSYSTEM_P2_REPO="${TMP_DIR}/p2-repo-for-ecosystem"
   mkdir -p "${ECOSYSTEM_P2_REPO}"
 
-  cp -r "$(getP2CacheLocation ${SCALA_IDE_P2_ID})" "${ECOSYSTEM_P2_REPO}/base"
+  cp -r "$(getCacheLocation ${SCALA_IDE_P2_ID})" "${ECOSYSTEM_P2_REPO}/base"
 
   if ${PRODUCT}
   then
-    mergeP2Repo "$(getP2CacheLocation ${PRODUCT_P2_ID})" "${ECOSYSTEM_P2_REPO}/base"
+    mergeP2Repo "$(getCacheLocation ${PRODUCT_P2_ID})" "${ECOSYSTEM_P2_REPO}/base"
   fi
 
   info "uploading base ecosystem"
