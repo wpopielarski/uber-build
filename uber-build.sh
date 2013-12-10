@@ -318,6 +318,7 @@ function fetchGitBranch () {
       git remote add ${REMOTE_ID} $2
     fi
     info "Fetching update for $2"
+    git fetch --tag ${REMOTE_ID}
     git fetch ${REMOTE_ID}
   fi
 
