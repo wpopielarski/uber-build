@@ -886,7 +886,7 @@ function stepScalaRefactoring () {
 
   SCALA_REFACTORING_UID=$(git rev-parse HEAD)
 
-  SCALA_REFACTORING_P2_ID=scala-refactoring/${SCALA_REFACTORING_UID}/${SCALA_IDE_UID}/${SCALA_UID}
+  SCALA_REFACTORING_P2_ID=scala-refactoring/${SCALA_REFACTORING_UID}/${SCALA_UID}
 
   checkCache ${SCALA_REFACTORING_P2_ID}
   if [ $RES != 0 ]
@@ -917,7 +917,7 @@ function stepScalariform () {
 
   SCALARIFORM_UID=$(git rev-parse HEAD)
 
-  SCALARIFORM_P2_ID=scalariform/${SCALARIFORM_UID}/${SCALA_IDE_UID}/${SCALA_UID}
+  SCALARIFORM_P2_ID=scalariform/${SCALARIFORM_UID}/${SCALA_UID}
 
   checkCache ${SCALARIFORM_P2_ID}
   if [ $RES != 0 ]
