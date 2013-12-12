@@ -759,10 +759,14 @@ function stepScala () {
 
   if ${SCALA_REBUILD}
   then
-    FULL_SCALA_VERSION="${SCALA_VERSION}-${SCALA_GIT_HASH}-SNAPSHOT"
-    SCALA_VERSION_SUFFIX="-$SCALA_GIT_HASH-SNAPSHOT"
+    fetchGitBranch "${SCALA_DIR}" "${SCALA_GIT_REPO}" "${SCALA_GIT_HASH}" NaN "pr"
 
-    SCALA_P2_ID=scala/${SCALA_GIT_HASH}
+    SCALA_UID=$(git rev-parse HEAD)
+
+    FULL_SCALA_VERSION="${SCALA_VERSION}-${SCALA_UID}-SNAPSHOT"
+    SCALA_VERSION_SUFFIX="-${SCALA_UID}-SNAPSHOT"
+
+    SCALA_P2_ID=scala/${SCALA_UID}
 
     checkAvailability "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
     if [ $RES = 0 ]
@@ -778,8 +782,6 @@ function stepScala () {
       fi
     else
       info "Building Scala from source"
-
-      fetchGitBranch "${SCALA_DIR}" "${SCALA_GIT_REPO}" "${SCALA_GIT_HASH}" NaN "pr"
 
       cd "${SCALA_DIR}"
 
@@ -884,7 +886,7 @@ function stepScalaRefactoring () {
 
   SCALA_REFACTORING_UID=$(git rev-parse HEAD)
 
-  SCALA_REFACTORING_P2_ID=scala-refactoring/${SCALA_REFACTORING_UID}/${SCALA_IDE_UID}/${SCALA_UID}
+  SCALA_REFACTORING_P2_ID=scala-refactoring/${SCALA_REFACTORING_UID}/${SCALA_UID}
 
   checkCache ${SCALA_REFACTORING_P2_ID}
   if [ $RES != 0 ]
@@ -915,7 +917,7 @@ function stepScalariform () {
 
   SCALARIFORM_UID=$(git rev-parse HEAD)
 
-  SCALARIFORM_P2_ID=scalariform/${SCALARIFORM_UID}/${SCALA_IDE_UID}/${SCALA_UID}
+  SCALARIFORM_P2_ID=scalariform/${SCALARIFORM_UID}/${SCALA_UID}
 
   checkCache ${SCALARIFORM_P2_ID}
   if [ $RES != 0 ]
