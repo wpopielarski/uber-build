@@ -150,7 +150,7 @@ EOF
 EOF
 
   set +e
-  mvn "${MAVEN_ARGS[@]}" compile
+  mvn "${MAVEN_ARGS[@]}" compile >&7 2>&7
   RES=$?
   set -e
 
@@ -430,6 +430,13 @@ function stepSetupLogging () {
   if [ -z "${DEBUG}" ]
 # enable in file logging only if not in debug mode
   then
+    # 1 - command standard output
+    # 2 - command error output
+    # 3 - log file
+    # 4 - renamed general standard output
+    # 5 - renamed general standard error
+    # 6 - fd always pushed to general standard output
+    # 7 - extra log file
     case "${LOGGING}" in
       file )
         mkdir -p "${BUILD_DIR}"
@@ -447,6 +454,12 @@ function stepSetupLogging () {
         missingParameterChoice "LOGGING" "file, console"
         ;;
     esac
+    exec 7> "${BUILD_DIR}/log-extra.txt"
+    echo "############################################################" >&7
+    echo "#### Log file containing usually non-interesting output ####" >&7
+    echo "#### look for '>&7' in uber-build.sh                    ####" >&7
+    echo "############################################################" >&7
+    echo "" >&7
   fi
 }
 
