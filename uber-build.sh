@@ -299,10 +299,11 @@ function osgiVersion () {
 # $4 - depth (TODO: really needed?)
 # $5 - extra fetch (optional)
 function fetchGitBranch () {
-  if [ ! -d "$1" ]
+  if [ ! -d "$1/.git" ]
   then
     info "Cloning git repo $2"
     REMOTE_ID="remote01"
+    rm -rf "$1"
     git clone -o ${REMOTE_ID} "$2" "$1"
     cd "$1"
   else
