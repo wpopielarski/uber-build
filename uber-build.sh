@@ -431,6 +431,7 @@ function stepSetupLogging () {
   if [ -z "${DEBUG}" ]
 # enable in file logging only if not in debug mode
   then
+    mkdir -p "${BUILD_DIR}"
     # 1 - command standard output
     # 2 - command error output
     # 3 - log file
@@ -440,7 +441,6 @@ function stepSetupLogging () {
     # 7 - extra log file
     case "${LOGGING}" in
       file )
-        mkdir -p "${BUILD_DIR}"
         LOG_FILE="${BUILD_DIR}/log-${TIMESTAMP}.txt"
         > "${LOG_FILE}"
         rm -rf "${BUILD_DIR}/log.txt"
