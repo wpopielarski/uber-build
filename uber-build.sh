@@ -220,7 +220,7 @@ function checkCache () {
 # $2 - directory to cache
 # $3 - force cache usage ("true"|"false", optional)
 function storeCache () {
-  FORCE_CACHE="${2:-false}"
+  FORCE_CACHE="${3:-false}"
   if ${FORCE_CACHE} || ${WITH_CACHE}
   then
     mkdir -p "$(dirname "${P2_CACHE_DIR}/$1")"
