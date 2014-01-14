@@ -821,7 +821,7 @@ function stepScala () {
         mkdir tmp
         cp ${SCALA_DIR}/buildcharacter.properties tmp/versions.properties
         storeCache ${SCALA_P2_ID} tmp "true"
-        SCALA_VERSIONS_PROPERTIES_PATH=$(getCacheLocation ${SCALA_P2_ID})/versions.properties
+        SCALA_VERSIONS_PROPERTIES_PATH=$(getCacheLocation ${SCALA_P2_ID} "true")/versions.properties
       fi
 
     fi
