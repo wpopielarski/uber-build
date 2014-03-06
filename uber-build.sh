@@ -99,7 +99,7 @@ function checkParameters () {
 # $2 - artifacId
 # $3 - version
 # $4 - extra repository to look in (optional)
-# return value in $RES
+# return value is 0 if the artifact is available
 function checkAvailability () {
   cd "${TMP_DIR}"
   rm -rf *
@@ -161,6 +161,8 @@ EOF
   else
     debug "$1:$2:jar:$3 not found !"
   fi
+
+  return ${RES}
 }
 
 # Like check availability, but fail if not available.
@@ -169,8 +171,7 @@ EOF
 # $3 - version
 # $4 - extra repository (optional)
 function checkNeeded () {
-  checkAvailability "$1" "$2" "$3" "$4"
-  if [ ${RES} != 0 ]
+  if ! checkAvailability "$1" "$2" "$3" "$4"
   then
     error "$1:$2:jar:$3 is needed !!!"
   fi
@@ -178,12 +179,9 @@ function checkNeeded () {
 
 # Check if the given executable is in the PATH.
 # $1 - executable
-# return value in $RES
+# return value is 0 if the executable was found.
 function checkExecutableOnPath () {
-  set +e
   BIN_LOCATION=$(which $1)
-  RES=$?
-  set -e
 }
 
 ########################
@@ -193,7 +191,7 @@ function checkExecutableOnPath () {
 # Check if a directory is available in the cache.
 # $1 - cache id
 # $2 - force cache usage ("true"|"false", optional)
-# return value in $RES
+# return values
 #   0 - found
 #   1 - not found
 #   2 - caching disabled
@@ -204,14 +202,14 @@ function checkCache () {
     if [ -d "${P2_CACHE_DIR}/$1" ]
     then
       debug "$1 found !"
-      RES=0
+      return 0
     else
       debug "$1 not found !"
-      RES=1
+      return 1
     fi
   else
     debug "caching disabled"
-    RES=2
+    return 2
   fi
 }
 
@@ -609,8 +607,7 @@ function stepCheckPrerequisites () {
         error "The variable ANT is set, but doesn't point to an executable."
       fi
     else
-      checkExecutableOnPath "ant"
-      if [ "${RES}" != 0 ]
+      if ! checkExecutableOnPath "ant"
       then
         error "To be able to rebuild a special version of Scala, 'ant' should be in the PATH, or the variable ANT should be set"
       else
@@ -622,8 +619,7 @@ function stepCheckPrerequisites () {
 # eclipse and keytool are needed to sign the jars
   if ${SIGN_ARTIFACTS}
   then
-    checkExecutableOnPath "keytool"
-    if [ "${RES}" != 0 ]
+    if ! checkExecutableOnPath "keytool"
     then
       error "'keytool' is required on PATH to sign the jars"
     fi
@@ -637,8 +633,7 @@ function stepCheckPrerequisites () {
         error "The variable ECLIPSE is set, but doesn't point to an executable."
       fi
     else
-      checkExecutableOnPath "eclipse"
-      if [ "${RES}" != 0 ]
+      if ! checkExecutableOnPath "eclipse"
       then
         error "to sign the jars, 'eclipse' should be in the PATH, or the variable ECLIPSE should be set."
       else
@@ -648,8 +643,7 @@ function stepCheckPrerequisites () {
   fi
 
 # maven is used in most of the phases
-  checkExecutableOnPath "mvn"
-  if [ "${RES}" != 0 ]
+  if ! checkExecutableOnPath "mvn"
   then
     error "'mvn' is required on PATH for any build."
   fi
@@ -780,16 +774,9 @@ function stepCheckConfiguration () {
 function stepScala () {
   printStep "Scala"
 
-# for releases, already existing Scala binaries are used.
-  if ${RELEASE}
-  then
-    FULL_SCALA_VERSION=${SCALA_VERSION}
-  fi
-
-# for Scala pr validation, custom build Scala binaries are used.
   if ${SCALA_VALIDATOR}
   then
-    FULL_SCALA_VERSION=${SCALA_VERSION}
+    # for Scala pr validation, version.properties file is provided.
     SCALA_VERSIONS_PROPERTIES_PATH=${CURRENT_DIR}/versions.properties
   fi
 
@@ -804,13 +791,11 @@ function stepScala () {
 
     SCALA_P2_ID=scala/${SCALA_UID}
 
-    checkAvailability "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
-    if [ $RES = 0 ]
+    if checkAvailability "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}"
     then
       if ${USE_SCALA_VERSIONS_PROPERTIES_FILE}
       then
-        checkCache ${SCALA_P2_ID} "true"
-        if [ $RES != 0 ]
+        if ! checkCache ${SCALA_P2_ID} "true"
         then
           error "Cannot find cached version of versions.properties for ${SCALA_P2_ID}"
         fi
@@ -848,6 +833,9 @@ function stepScala () {
 
     fi
 
+  else
+    # already existing Scala binaries are used.
+    FULL_SCALA_VERSION=${SCALA_VERSION}
   fi
 
   if ${SBT_REBUILD} && ${USE_SCALA_VERSIONS_PROPERTIES_FILE}
@@ -870,21 +858,11 @@ function stepScala () {
 function stepZinc () {
   printStep "Zinc"
 
-
-# for releases, already existing sbt binaries are used.
-  if ${RELEASE}
-  then
-    FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE${ZINC_BUILD_VERSION_SUFFIX}"
-    IDE_M2_REPO="http://typesafe.artifactoryonline.com/typesafe/ide-${SHORT_SCALA_VERSION}"
-    checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
-  fi
-
-# for Scala pr validation, custom build sbt binaries are used.
+  # for Scala pr validation, custom build sbt binaries are used.
   if ${SBT_REBUILD}
   then
     FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE-SNAPSHOT"
-    checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
-    if [ $RES != 0 ]
+    if ! checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
     then
       info "Building Zinc using dbuild"
 
@@ -904,6 +882,11 @@ function stepZinc () {
 
       checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
     fi
+  else
+    # already existing sbt binaries are used.
+    FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE${ZINC_BUILD_VERSION_SUFFIX}"
+    IDE_M2_REPO="http://typesafe.artifactoryonline.com/typesafe/ide-${SHORT_SCALA_VERSION}"
+    checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
   fi
 
   SBT_UID=${FULL_SBT_VERSION}
@@ -924,8 +907,7 @@ function stepScalaRefactoring () {
 
   SCALA_REFACTORING_P2_ID=scala-refactoring/${SCALA_REFACTORING_UID}/${SCALA_UID}
 
-  checkCache ${SCALA_REFACTORING_P2_ID}
-  if [ $RES != 0 ]
+  if ! checkCache ${SCALA_REFACTORING_P2_ID}
   then
     info "Building Scala Refactoring"
 
@@ -955,8 +937,7 @@ function stepScalariform () {
 
   SCALARIFORM_P2_ID=scalariform/${SCALARIFORM_UID}/${SCALA_UID}
 
-  checkCache ${SCALARIFORM_P2_ID}
-  if [ $RES != 0 ]
+  if ! checkCache ${SCALARIFORM_P2_ID}
   then
     info "Building Scalariform"
 
@@ -991,8 +972,7 @@ function stepScalaIDE () {
     SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}/${SCALA_UID}/${SBT_UID}/${SCALA_REFACTORING_UID}/${SCALARIFORM_UID}
   fi
 
-  checkCache ${SCALA_IDE_P2_ID}
-  if [ $RES != 0 ]
+  if ! checkCache ${SCALA_IDE_P2_ID}
   then
     info "Building Scala IDE"
 
@@ -1054,8 +1034,7 @@ function stepPlugin () {
 
   eval $3_P2_ID=${P2_ID}
 
-  checkCache ${P2_ID}
-  if [ $RES != 0 ]
+  if ! checkCache ${P2_ID}
   then
     info "Building $1"
 
@@ -1117,8 +1096,7 @@ function stepProduct () {
     PRODUCT_P2_ID=${PRODUCT_P2_ID}/S-${SEARCH_PLUGIN_UID}
   fi
 
-  checkCache ${PRODUCT_P2_ID}
-  if [ $RES != 0 ]
+  if ! checkCache ${PRODUCT_P2_ID}
   then
     info "Generate merged update site for Product build"
 
