@@ -732,6 +732,8 @@ function stepCheckConfiguration () {
   fi
 
 # set extra variables. There are different ways to reference the Scala and Eclipse versions.
+  SCALA_210_OR_LATER=false
+  SCALA_211_OR_LATER=false
   case "${SCALA_VERSION}" in
     2.10.* )
       SCALA_PROFILE="scala-2.10.x"
@@ -739,6 +741,7 @@ function stepCheckConfiguration () {
       ECOSYSTEM_SCALA_VERSION="scala210"
       SHORT_SCALA_VERSION="2.10"
       USE_SCALA_VERSIONS_PROPERTIES_FILE=false
+      SCALA_210_OR_LATER=true
       ;;
     2.11.* )
       SCALA_PROFILE="scala-2.11.x"
@@ -746,6 +749,8 @@ function stepCheckConfiguration () {
       ECOSYSTEM_SCALA_VERSION="scala211"
       SHORT_SCALA_VERSION="2.11"
       USE_SCALA_VERSIONS_PROPERTIES_FILE=true
+      SCALA_210_OR_LATER=true
+      SCALA_211_OR_LATER=true
       ;;
     * )
       error "Not supported version of Scala: ${SCALA_VERSION}."
@@ -806,19 +811,31 @@ function stepScala () {
 
       cd "${SCALA_DIR}"
 
+      # full clean
       ${ANT_BIN} -Divy.cache.ttl.default=eternal all.clean
       git clean -fxd
-      ${ANT_BIN} \
-          distpack-maven-opt \
-          -Darchives.skipxz=true \
-          -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
-          -Dversion.suffix="${SCALA_VERSION_SUFFIX}"
 
-      cd dists/maven/latest
-      ${ANT_BIN} \
-          -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
-          -Dmaven.version.suffix="-${SCALA_VERSION_SUFFIX}" \
-          deploy.local
+      if ${SCALA_211_OR_LATER}
+      then
+        ${ANT_BIN} \
+            publish-local-opt \
+            -Darchives.skipxz=true \
+            -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
+            -Dversion.suffix="${SCALA_VERSION_SUFFIX}"
+      else
+        # before 2.11.0
+        ${ANT_BIN} \
+            distpack-maven-opt \
+            -Darchives.skipxz=true \
+            -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
+            -Dversion.suffix="${SCALA_VERSION_SUFFIX}"
+
+        cd dists/maven/latest
+        ${ANT_BIN} \
+            -Dlocal.snapshot.repository="${LOCAL_M2_REPO}" \
+            -Dmaven.version.suffix="-${SCALA_VERSION_SUFFIX}" \
+            deploy.local
+      fi
 
       if ${USE_SCALA_VERSIONS_PROPERTIES_FILE}
       then
