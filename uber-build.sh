@@ -934,32 +934,23 @@ function stepScala () {
 function stepZinc () {
   printStep "Zinc"
 
-# for releases, already existing sbt binaries are used.
-# TODO(jsuereth) - Hooks for releasing sbt itself in this script as well...
-  if ${RELEASE} && [ ! ${SBT_ALWAYS_BUILD} ]
-  then
-    FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE${ZINC_BUILD_VERSION_SUFFIX}"
-    IDE_M2_REPO="http://typesafe.artifactoryonline.com/typesafe/ide-${SHORT_SCALA_VERSION}"
-    checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
-  fi
-
-# for Scala pr validation, custom build sbt binaries are used.
+  # for Scala pr validation, custom build sbt binaries are used.
   if ${SBT_REBUILD}
   then
     FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE-SNAPSHOT"
 
     SBT_AVAILABLE=false
-    if [ ! ${SBT_ALWAYS_BUILD} ]
-    then
-      checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
-      if [ $RES = 0 ]
+    if ! ${SBT_ALWAYS_BUILD}
+    then      
+      if checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
       then
         SBT_AVAILABLE=true
       fi
     fi
 
+    echo "Done checking sbt available = ${SBT_AVAILABLE}"
     # TODO - Only check availability if we're not in sbt nightly mode.
-    if ${SBT_ALWAYS_BUILD} || ${SBT_AVAILABLE}
+    if ! ${SBT_AVAILABLE}
     then
       info "Building Zinc using dbuild"
 
