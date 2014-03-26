@@ -731,7 +731,7 @@ function stepCheckConfiguration () {
 
   if ${SBT_REBUILD}
   then
-    checkParameters "ZINC_BUILD_DIR" "ZINC_BUILD_GIT_REPO" "ZINC_BUILD_GIT_BRANCH"
+    checkParameters "ZINC_BUILD_DIR"
     if [ -n "${prRepoUrl}" ]
     then
       ZINC_BUILD_ARGS="-DprRepoUrl=${prRepoUrl}"
