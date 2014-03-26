@@ -522,12 +522,13 @@ function stepSetFlags () {
 # the flags
   RELEASE=false
   DRY_RUN=true
-  IDE_BUILD=true
+  IDE_BUILD=false
   SCALA_RELEASE=false
   SCALA_VALIDATOR=false
   SCALA_REBUILD=false
   SBT_RELEASE=false
   SBT_REBUILD=false
+  SBT_ALWAYS_BUILD=false
   SIGN_ARTIFACTS=false
   WORKSHEET_PLUGIN=false
   PLAY_PLUGIN=false
@@ -542,20 +543,26 @@ function stepSetFlags () {
       RELEASE=true
       DRY_RUN=false
       SIGN_ARTIFACTS=true
+      SBT_REBUILD=true
+      IDE_BUILD=true
       ;;
     release-dryrun )
       RELEASE=true
       DRY_RUN=true
+      SBT_REBUILD=true
+      IDE_BUILD=true
       SIGN_ARTIFACTS=true
       ;;
     nightly )
       RELEASE=true
       DRY_RUN=true
+      IDE_BUILD=true
       SIGN_ARTIFACTS=false
       ;;
     scala-pr-validator )
       SCALA_VALIDATOR=true
       SBT_REBUILD=true
+      IDE_BUILD=true
       ;;
     scala-pr-rebuild )
       SCALA_VALIDATOR=true
@@ -565,17 +572,13 @@ function stepSetFlags () {
     scala-local-build )
       SCALA_REBUILD=true
       SBT_REBUILD=true
+      IDE_BUILD=true
       ;;
     sbt-nightly )
       RELEASE=true
       DRY_RUN=true
       SBT_REBUILD=true
       SBT_ALWAYS_BUILD=true
-      IDE_BUILD=false
-      ;;
-    sbt-release )
-      # TODO(jsuereth) Figure out how we cut releases with this script!!!
-      missingParameterChoice "OPERATION (sbt-release not implemented)" "release, release-dryrun, scala-pr-validator, scala-pr-rebuild, scala-local-build"
       ;;
     * )
       missingParameterChoice "OPERATION" "release, release-dryrun, scala-pr-validator, scala-pr-rebuild, scala-local-build"
@@ -939,18 +942,9 @@ function stepZinc () {
   then
     FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE-SNAPSHOT"
 
-    SBT_AVAILABLE=false
-    if ! ${SBT_ALWAYS_BUILD}
-    then      
-      if checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
-      then
-        SBT_AVAILABLE=true
-      fi
-    fi
-
     echo "Done checking sbt available = ${SBT_AVAILABLE}"
     # TODO - Only check availability if we're not in sbt nightly mode.
-    if ! ${SBT_AVAILABLE}
+    if ${SBT_ALWAYS_BUILD} || ! checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
     then
       info "Building Zinc using dbuild"
 
