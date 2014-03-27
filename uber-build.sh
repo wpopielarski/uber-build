@@ -980,7 +980,7 @@ function stepScalaIDE () {
 
   cd "${SCALA_IDE_DIR}"
 
-  SCALA_IDE_UID=$(git rev-parse HEAD)
+  SCALA_IDE_UID="$(git rev-parse HEAD)${SCALA_IDE_VERSION_TAG}"
 
   if $SIGN_ARTIFACTS
   then
