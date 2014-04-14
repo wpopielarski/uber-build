@@ -934,15 +934,27 @@ function stepScala () {
 # Zinc
 #######
 
+# Constructs a zinc properties file in ZINC_DIR and gives the name of it.
+function makZincPropertiesFile() {
+  local filename="current-zinc-build.properties"
+  local properties_file="${ZINC_DIR}/${filename}"
+  info "Writing properties: ${properties_file}"
+  echo > "${properties_file}"
+  echo "publish-repo=http://private-repo.typesafe.com/typesafe/ide-2.11" >> "${properties_file}"
+  echo "sbt-version=${FULL_SBT_VERSION}" >> "${properties_file}"
+  info "$(cat "${properties_file}")"
+  echo "${filename}"
+}
+
 function stepZinc () {
   printStep "Zinc"
 
   # for Scala pr validation, custom build sbt binaries are used.
   if ${SBT_REBUILD}
   then
+    # TODO - if release, no -SNAPSHOT.
     FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE-SNAPSHOT"
 
-    echo "Done checking sbt available = ${SBT_AVAILABLE}"
     # TODO - Only check availability if we're not in sbt nightly mode.
     if ${SBT_ALWAYS_BUILD} || ! checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
     then
@@ -953,10 +965,9 @@ function stepZinc () {
       # TODO - Allow the properties file to be configured or automatically set.
       if [ -z "$ZINC_PROPERTIES_FILE" ]
       then 
-        ZINC_PROPERTIES_FILE=sbt-on-${SHORT_SCALA_VERSION}.x.properties
+        ZINC_PROPERTIES_FILE=$(makZincPropertiesFile)
       fi
 
-      FULL_SBT_VERSION=$(readProperty "${ZINC_BUILD_DIR}/${ZINC_PROPERTIES_FILE}" "sbt.version")
       info "Detected sbt version: ${FULL_SBT_VERSION}"
       cd "${ZINC_BUILD_DIR}"
 
@@ -964,6 +975,8 @@ function stepZinc () {
       then
         cp "${SCALA_VERSIONS_PROPERTIES_PATH}" .
       fi
+      # TODO - Check to see if we need to download Scala version.properties from 
+      #        raw.github.com...
 
       # TODO - publish repo should be the default one if we're in release mode.
       SBT_VERSION_PROPERTIES_FILE="file:${ZINC_PROPERTIES_FILE}" \
