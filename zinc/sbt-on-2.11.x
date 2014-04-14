@@ -48,21 +48,23 @@
           cross-version: standard
           sbt-version: "0.13.0"
         }
+        # TODO - We want the scala version used to be 
+        #        given to use from the IDE build, if we can.
         extra.parts.projects: [
           {
             name:  "scala-lib",
             system: "ivy",
-            set-version: ${vars.maven.version.number}
+            set-version: ${vars.scala-version}
             uri:    "ivy:org.scala-lang#scala-library;"${vars.maven.version.number}
           }, {
             name:  "scala-reflect",
             system: "ivy",
             uri:    "ivy:org.scala-lang#scala-reflect;"${vars.maven.version.number}
-            set-version: ${vars.maven.version.number}
+            set-version: ${vars.scala-version}
           }, {
             name:  "scala-compiler",
             system: "ivy",
-            set-version: ${vars.maven.version.number}
+            set-version: ${vars.scala-version}
             uri:    "ivy:org.scala-lang#scala-compiler;"${vars.maven.version.number}
           },
           {
