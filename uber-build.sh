@@ -935,9 +935,9 @@ function stepScala () {
 #######
 
 # Constructs a zinc properties file in ZINC_DIR and gives the name of it.
-function makZincPropertiesFile() {
+function makeZincPropertiesFile() {
   local filename="current-zinc-build.properties"
-  local properties_file="${ZINC_DIR}/${filename}"
+  local properties_file="${ZINC_BUILD_DIR}/${filename}"
   info "Writing properties: ${properties_file}"
   echo > "${properties_file}"
   echo "publish-repo=http://private-repo.typesafe.com/typesafe/ide-2.11" >> "${properties_file}"
@@ -965,10 +965,11 @@ function stepZinc () {
       # TODO - Allow the properties file to be configured or automatically set.
       if [ -z "$ZINC_PROPERTIES_FILE" ]
       then 
-        ZINC_PROPERTIES_FILE=$(makZincPropertiesFile)
+        ZINC_PROPERTIES_FILE=$(makeZincPropertiesFile)
       fi
 
       info "Detected sbt version: ${FULL_SBT_VERSION}"
+      # TODO - pushd/popd?
       cd "${ZINC_BUILD_DIR}"
 
       if $USE_SCALA_VERSIONS_PROPERTIES_FILE
