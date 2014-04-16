@@ -31,6 +31,15 @@ mkdir "${TMP_DIR}"
 # Timestamp used for logging and marking zip files
 TIMESTAMP=`date '+%Y%m%d-%H%M'`
 
+# dbuild needs a JOB_NAME and a NODE_NAME. Provide one if it is not set yet.
+true ${JOB_NAME:=local}
+true ${NODE_NAME:=local}
+true ${BUILD_URL:=http://to.no.where/}
+
+export JOB_NAME
+export NODE_NAME
+export BUILD_URL
+
 # ant options. The Scala build needs a fair amount of memory
 export ANT_OPTS="-Xms512M -Xmx2048M -Xss1M -XX:MaxPermSize=128M"
 
@@ -902,7 +911,8 @@ function stepScala () {
 
   else
     # already existing Scala binaries are used.
-    FULL_SCALA_VERSION=${SCALA_VERSION}
+    FULL_SCALA_VERSION="${SCALA_VERSION}"
+    SCALA_P2_ID="scala/${FULL_SCALA_VERSION}"
   fi
 
   # Here we attempt to grab the version.properties file from the zinc nightly build rather
@@ -921,7 +931,64 @@ function stepScala () {
   then
     if [ ! -f "${SCALA_VERSIONS_PROPERTIES_PATH}" ]
     then
-      error "unable to find the versions file at '${SCALA_VERSIONS_PROPERTIES_PATH}'"
+      info "Attempt to recreate the Scala version.properties file from maven data"
+
+      cd "${TMP_DIR}"
+      rm -rf *
+
+      local SCALA_LIBRARY_ALL_POM="scala-library-all.pom"
+
+      set +e
+      wget -O "${SCALA_LIBRARY_ALL_POM}"  "http://repo1.maven.org/maven2/org/scala-lang/scala-library-all/${FULL_SCALA_VERSION}/scala-library-all-${FULL_SCALA_VERSION}.pom"
+      RES=$?
+      set -e
+
+      if ${RES} != 0
+      then
+        error "unable to find the versions file at '${SCALA_VERSIONS_PROPERTIES_PATH}' and to recreate one for Scala '${FULL_SCALA_VERSION}'."
+      fi
+
+      local SCALA_LIBRARY_ALL_CLEANED="scala-library-cleaned.txt"
+
+      grep -A 1 artifactId scala-library-all.pom | grep -v -- '--' | sed '1~2 {N;s/\n//g}' | grep version | awk -F '[<>]' '{print $3" "$7;}' > "${SCALA_LIBRARY_ALL_CLEANED}"
+      
+      # $1 key
+      function extractVersionNumber () {
+        grep "$1" "${SCALA_LIBRARY_ALL_CLEANED}" | awk '{print $2;}'
+      }
+
+      local PROPERTY_MAVEN_VERSION=$(extractVersionNumber "scala-library")
+      local PROPERTY_SCALA_BINARY_VERSION=$(grep "scala-xml" "${SCALA_LIBRARY_ALL_CLEANED}" | awk -F '[_ ]' '{print $2;}')
+      local PROPERTY_SCALA_XML_VERSION=$(extractVersionNumber "scala-xml")
+      local PROPERTY_PARSER_COMBINATORS_VERSION=$(extractVersionNumber "scala-parser-combinators")
+      local PROPERTY_CONTINUATION_VERSION=$(extractVersionNumber "scala-continuations-library")
+      local PROPERTY_SWING_VERSION=$(extractVersionNumber "scala-swing")
+      local PROPERTY_AKKA_VERSION=$(extractVersionNumber "akka-actor")
+      local PROPERTY_ACTOR_MIGRATION_VERSION=$(extractVersionNumber "scala-actors-migration")
+
+      mkdir tmp
+      cat > "tmp/versions.properties" << EOF
+maven.version.number=${PROPERTY_MAVEN_VERSION}
+
+starr.version=${FULL_SCALA_VERSION}
+
+scala.binary.version=${PROPERTY_SCALA_BINARY_VERSION}
+scala.full.version=${FULL_SCALA_VERSION}
+
+scala-xml.version.number=${PROPERTY_SCALA_XML_VERSION}
+scala-parser-combinators.version.number=${PROPERTY_PARSER_COMBINATORS_VERSION}
+scala-continuations-plugin.version.number=${PROPERTY_CONTINUATION_VERSION}
+scala-continuations-library.version.number=${PROPERTY_CONTINUATION_VERSION}
+scala-swing.version.number=${PROPERTY_SWING_VERSION}
+
+akka-actor.version.number=${PROPERTY_AKKA_VERSION}
+actors-migration.version.number=${PROPERTY_ACTOR_MIGRATION_VERSION}
+EOF
+
+    # cache the generated file
+    storeCache "${SCALA_P2_ID}" tmp "true"
+    SCALA_VERSIONS_PROPERTIES_PATH=$(getCacheLocation ${SCALA_P2_ID} "true")/versions.properties
+
     fi
   fi
 
