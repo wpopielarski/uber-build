@@ -91,7 +91,7 @@
         uri:    "git://github.com/harrah/sbinary.git#"${vars.sbinary-tag}
       }, {
         name:   "sbt",
-        uri:    "git://github.com/sbt/sbt.git#"${vars.sbt-tag}
+        uri:    "git://github.com/skyluc/sbt.git#"${vars.sbt-tag}
         extra: {
           sbt-version: ${vars.sbt-build-sbt-version},
           projects: ["compiler-interface",
