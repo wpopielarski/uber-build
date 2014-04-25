@@ -551,9 +551,9 @@ function stepSetFlags () {
     release )
       RELEASE=true
       DRY_RUN=false
-      SIGN_ARTIFACTS=true
       SBT_REBUILD=true
       IDE_BUILD=true
+      SIGN_ARTIFACTS=true
       ;;
     release-dryrun )
       RELEASE=true
@@ -565,11 +565,12 @@ function stepSetFlags () {
     nightly )
       RELEASE=true
       DRY_RUN=true
+      SBT_REBUILD=true
       IDE_BUILD=true
-      SIGN_ARTIFACTS=false
       ;;
     scala-pr-validator )
       SCALA_VALIDATOR=true
+      SCALA_REBUILD=true
       SBT_REBUILD=true
       IDE_BUILD=true
       ;;
@@ -577,6 +578,7 @@ function stepSetFlags () {
       SCALA_VALIDATOR=true
       SCALA_REBUILD=true
       SBT_REBUILD=true
+      IDE_BUILD=true
       ;;
     scala-local-build )
       SCALA_REBUILD=true
@@ -590,7 +592,7 @@ function stepSetFlags () {
       SBT_ALWAYS_BUILD=true
       ;;
     * )
-      missingParameterChoice "OPERATION" "release, release-dryrun, scala-pr-validator, scala-pr-rebuild, scala-local-build"
+      missingParameterChoice "OPERATION" "release, release-dryrun, nightly, scala-pr-validator, scala-pr-rebuild, scala-local-build"
       ;;
   esac
 
