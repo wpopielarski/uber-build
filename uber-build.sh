@@ -1028,6 +1028,7 @@ function makeZincPropertiesFile() {
   info "Writing properties: ${properties_file}"
   echo > "${properties_file}"
   echo "publish-repo=http://private-repo.typesafe.com/typesafe/ide-2.11" >> "${properties_file}"
+  echo "sbt-tag=${SBT_TAG}" >> "${properties_file}"
   echo "sbt-version=${FULL_SBT_VERSION}" >> "${properties_file}"
   info "$(cat "${properties_file}")"
   echo "${filename}"
