@@ -24,9 +24,9 @@
 # - Test locally with the command `SBT_VERSION_PROPERTIES_FILE=file:my.properties ./bin/dbuild sbt-on-2.11.x`
 {
   properties: [
-    "file:versions.properties"
-    ${?SBT_VERSION_PROPERTIES_FILE}  # If a properties environment vairable exists, we load it
     "file:sbt-on-2.11.x.properties"
+    ${?SBT_VERSION_PROPERTIES_FILE}  # If a properties environment vairable exists, we load it
+    "file:versions.properties"
   ]
   // Variables that may be external.  We have the defaults here.
   vars: {
@@ -44,7 +44,7 @@
         system: assemble
         name:   scala2
         deps.ignore: "org.scalacheck#scalacheck"
-        extra.parts.options: {
+        extra.parts: {
           cross-version: standard
           sbt-version: "0.13.0"
         }
@@ -91,7 +91,7 @@
         uri:    "git://github.com/harrah/sbinary.git#"${vars.sbinary-tag}
       }, {
         name:   "sbt",
-        uri:    "git://github.com/sbt/sbt.git#"${vars.sbt-tag}
+        uri:    "git://github.com/skyluc/sbt.git#"${vars.sbt-tag}
         extra: {
           sbt-version: ${vars.sbt-build-sbt-version},
           projects: ["compiler-interface",
@@ -112,13 +112,13 @@
         uri:    "https://github.com/typesafehub/zinc.git#"${vars.zinc-tag}
       }
     ],
-    options:{cross-version:standard},
+    cross-version:standard,
   }
   options: {
     deploy: [
       {
         uri=${?vars.publish-repo},
-        credentials="/home/jenkinsdbuild/dbuild-josh-credentials.properties",
+        credentials="/home/luc/.credentials",
         projects:["sbt-republish"]
       }
     ]
@@ -141,8 +141,13 @@
       }
     }
   }
+  vars.ivyPat: ", [organization]/[module]/(scala_[scalaVersion]/)(sbt_[sbtVersion]/)[revision]/[type]s/[artifact](-[classifier]).[ext]"
+  options.resolvers: {
+    0: "local"
+    1: "a7-maven: https://a7.typesafe.com:8082/artifactory/repo"
+    2: "a7-ivy: https://a7.typesafe.com:8082/artifactory/repo"${vars.ivyPat}
+  }
 }
-
 
 // {
 //   name:  "scala-compiler-doc",

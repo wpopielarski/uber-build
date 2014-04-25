@@ -538,6 +538,7 @@ function stepSetFlags () {
   SBT_RELEASE=false
   SBT_REBUILD=false
   SBT_ALWAYS_BUILD=false
+  SBT_PUBLISH=false
   SIGN_ARTIFACTS=false
   WORKSHEET_PLUGIN=false
   PLAY_PLUGIN=false
@@ -586,13 +587,16 @@ function stepSetFlags () {
       IDE_BUILD=true
       ;;
     sbt-nightly )
-      RELEASE=true
-      DRY_RUN=true
       SBT_REBUILD=true
       SBT_ALWAYS_BUILD=true
       ;;
+    sbt-publish )
+      SBT_REBUILD=true
+      SBT_ALWAYS_BUILD=true
+      SBT_PUBLISH=true
+      ;;
     * )
-      missingParameterChoice "OPERATION" "release, release-dryrun, nightly, scala-pr-validator, scala-pr-rebuild, scala-local-build"
+      missingParameterChoice "OPERATION" "release, release-dryrun, nightly, scala-pr-validator, scala-pr-rebuild, scala-local-build, sbt-nightly, sbt-publish"
       ;;
   esac
 
@@ -749,10 +753,13 @@ function stepCheckConfiguration () {
     fi
   fi
 
-  checkParameters "ECLIPSE_PLATFORM"
-  checkParameters "SCALA_IDE_DIR" "SCALA_IDE_GIT_REPO" "SCALA_IDE_GIT_BRANCH" "SCALA_IDE_VERSION_TAG"
-  checkParameters "SCALA_REFACTORING_DIR" "SCALA_REFACTORING_GIT_REPO" "SCALA_REFACTORING_GIT_BRANCH"
-  checkParameters "SCALARIFORM_DIR" "SCALARIFORM_GIT_REPO" "SCALARIFORM_GIT_BRANCH"
+  if ${IDE_BUILD}
+  then
+    checkParameters "ECLIPSE_PLATFORM"
+    checkParameters "SCALA_IDE_DIR" "SCALA_IDE_GIT_REPO" "SCALA_IDE_GIT_BRANCH" "SCALA_IDE_VERSION_TAG"
+    checkParameters "SCALA_REFACTORING_DIR" "SCALA_REFACTORING_GIT_REPO" "SCALA_REFACTORING_GIT_BRANCH"
+    checkParameters "SCALARIFORM_DIR" "SCALARIFORM_GIT_REPO" "SCALARIFORM_GIT_BRANCH"
+  fi
 
   if ${WORKSHEET_PLUGIN}
   then
@@ -818,19 +825,22 @@ function stepCheckConfiguration () {
       ;;
   esac
 
-  case "${ECLIPSE_PLATFORM}" in
-    indigo )
-      ECLIPSE_PROFILE="eclipse-indigo"
-      ECOSYSTEM_ECLIPSE_VERSION="e37"
-      ;;
-    juno )
-      ECLIPSE_PROFILE="eclipse-juno"
-      ECOSYSTEM_ECLIPSE_VERSION="e38"
-      ;;
-    * )
-      error "Not supported eclipse platform: ${ECLIPSE_PLATFORM}."
-      ;;
-  esac
+  if ${IDE_BUILD}
+  then
+    case "${ECLIPSE_PLATFORM}" in
+      indigo )
+        ECLIPSE_PROFILE="eclipse-indigo"
+        ECOSYSTEM_ECLIPSE_VERSION="e37"
+        ;;
+      juno )
+        ECLIPSE_PROFILE="eclipse-juno"
+        ECOSYSTEM_ECLIPSE_VERSION="e38"
+        ;;
+      * )
+        error "Not supported eclipse platform: ${ECLIPSE_PLATFORM}."
+        ;;
+    esac
+  fi
 }
 
 ########
@@ -1026,11 +1036,23 @@ function makeZincPropertiesFile() {
   local filename="current-zinc-build.properties"
   local properties_file="${ZINC_BUILD_DIR}/${filename}"
   info "Writing properties: ${properties_file}"
-  echo > "${properties_file}"
-  echo "publish-repo=http://private-repo.typesafe.com/typesafe/ide-2.11" >> "${properties_file}"
-  echo "sbt-tag=${SBT_TAG}" >> "${properties_file}"
-  echo "sbt-version=${FULL_SBT_VERSION}" >> "${properties_file}"
+
+  if ${SBT_PUBLISH}
+  then
+    local PUBLISH_REPO="http://private-repo.typesafe.com/typesafe/ide-${SHORT_SCALA_VERSION}"
+  else
+    local PUBLISH_REPO="file://${LOCAL_M2_REPO}"
+  fi
+
+  cat > "${properties_file}" << EOF
+publish-repo=${PUBLISH_REPO}
+sbt-tag=${SBT_TAG}
+sbt-version=${FULL_SBT_VERSION}
+EOF
+
   info "$(cat "${properties_file}")"
+
+  # Returns the name of the generated file
   echo "${filename}"
 }
 
@@ -1074,8 +1096,7 @@ function stepZinc () {
 
       # TODO - publish repo should be the default one if we're in release mode.
       SBT_VERSION_PROPERTIES_FILE="file:${ZINC_PROPERTIES_FILE}" \
-      SCALA_VERSION="${FULL_SCALA_VERSION}" \
-        PUBLISH_REPO="file://${LOCAL_M2_REPO}" \
+        SCALA_VERSION="${FULL_SCALA_VERSION}" \
         LOCAL_M2_REPO="${LOCAL_M2_REPO}" \
         bin/dbuild ${ZINC_BUILD_ARGS} sbt-on-${SHORT_SCALA_VERSION}.x
 
