@@ -1041,7 +1041,12 @@ function stepZinc () {
   if ${SBT_REBUILD}
   then
     # TODO - if release, no -SNAPSHOT.
-    FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE-SNAPSHOT"
+    if ${RELEASE}
+    then
+      FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE"
+    else
+      FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE-SNAPSHOT"
+    fi
 
     # TODO - Only check availability if we're not in sbt nightly mode.
     if ${SBT_ALWAYS_BUILD} || ! checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
