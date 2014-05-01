@@ -1023,6 +1023,23 @@ function stepScalaIDE () {
 
     storeCache ${SCALA_IDE_P2_ID} "${SCALA_IDE_DIR}/org.scala-ide.sdt.update-site/target/site"
   fi
+
+  # set the code name according to the version of Scala IDE which is used
+
+  SCALA_IDE_VERSION=$(osgiVersionFromJar "$(getCacheLocation ${SCALA_IDE_P2_ID})/plugins/org.scala-ide.sdt.core_*")
+
+  case "${SCALA_IDE_VERSION}" in
+    3.* )
+      ECOSYSTEM_SCALA_IDE_CODE_NAME="helium"
+      ;;
+    4.* )
+      ECOSYSTEM_SCALA_IDE_CODE_NAME="lithium"
+      ;;
+    * )
+      error "Not supported version of Scala IDE: ${SCALA_IDE_VERSION}."
+      ;;
+  esac
+
 }
 
 ##################
@@ -1141,7 +1158,7 @@ function stepProduct () {
 
     cd "${PRODUCT_DIR}"
 
-    REPO_PATH_ECLIPSE="/sdk/${ECOSYSTEM_ECLIPSE_VERSION}"
+    REPO_PATH_ECLIPSE="/sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}"
     REPO_PATH_SCALA="/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}/site"
 
     mvn ${MAVEN_ARGS[@]}\
@@ -1202,20 +1219,6 @@ function stepPublish () {
   SSH_ACCOUNT="scalaide@scala-ide.dreamhosters.com"
 
   info "generate base ecosystem repo"
-
-  SCALA_IDE_VERSION=$(osgiVersionFromJar "$(getCacheLocation ${SCALA_IDE_P2_ID})/plugins/org.scala-ide.sdt.core_*")
-
-  case "${SCALA_IDE_VERSION}" in
-    3.* )
-      ECOSYSTEM_SCALA_IDE_CODE_NAME="helium"
-      ;;
-    4.* )
-      ECOSYSTEM_SCALA_IDE_CODE_NAME="lithium"
-      ;;
-    * )
-      error "Not supported version of Scala IDE: ${SCALA_IDE_VERSION}."
-      ;;
-  esac
 
   rm -rf "${TMP_DIR}"/*
   ECOSYSTEM_P2_REPO="${TMP_DIR}/p2-repo-for-ecosystem"
