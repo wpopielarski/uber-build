@@ -1059,10 +1059,11 @@ EOF
 function stepZinc () {
   printStep "Zinc"
 
+  IDE_M2_REPO="http://typesafe.artifactoryonline.com/typesafe/ide-${SHORT_SCALA_VERSION}"
+
   # for Scala pr validation, custom build sbt binaries are used.
   if ${SBT_REBUILD}
   then
-    # TODO - if release, no -SNAPSHOT.
     if ${RELEASE}
     then
       FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE"
@@ -1071,7 +1072,7 @@ function stepZinc () {
     fi
 
     # TODO - Only check availability if we're not in sbt nightly mode.
-    if ${SBT_ALWAYS_BUILD} || ! checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
+    if ${SBT_ALWAYS_BUILD} || ! checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
     then
       info "Building Zinc using dbuild"
 
@@ -1101,12 +1102,11 @@ function stepZinc () {
         bin/dbuild ${ZINC_BUILD_ARGS} sbt-on-${SHORT_SCALA_VERSION}.x
 
       # TODO - We should either skip or fix this when trying to do an sbt release.
-      checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
+      checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
     fi
   else
     # already existing sbt binaries are used.
     FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE${ZINC_BUILD_VERSION_SUFFIX}"
-    IDE_M2_REPO="http://typesafe.artifactoryonline.com/typesafe/ide-${SHORT_SCALA_VERSION}"
     checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
   fi
 
