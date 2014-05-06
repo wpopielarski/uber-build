@@ -805,7 +805,6 @@ function stepCheckConfiguration () {
   case "${SCALA_VERSION}" in
     2.10.* )
       SCALA_PROFILE="scala-2.10.x"
-      SCALA_REPO_SUFFIX="210x"
       ECOSYSTEM_SCALA_VERSION="scala210"
       SHORT_SCALA_VERSION="2.10"
       USE_SCALA_VERSIONS_PROPERTIES_FILE=false
@@ -813,7 +812,6 @@ function stepCheckConfiguration () {
       ;;
     2.11.* )
       SCALA_PROFILE="scala-2.11.x"
-      SCALA_REPO_SUFFIX="211x"
       ECOSYSTEM_SCALA_VERSION="scala211"
       SHORT_SCALA_VERSION="2.11"
       USE_SCALA_VERSIONS_PROPERTIES_FILE=true
