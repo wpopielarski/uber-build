@@ -1098,7 +1098,7 @@ function stepZinc () {
       # TODO - publish repo should be the default one if we're in release mode.
       SBT_VERSION_PROPERTIES_FILE="file:${ZINC_PROPERTIES_FILE}" \
         SCALA_VERSION="${FULL_SCALA_VERSION}" \
-        LOCAL_M2_REPO="${LOCAL_M2_REPO}" \
+        LOCAL_M2_REPO="file://${LOCAL_M2_REPO}" \
         bin/dbuild ${ZINC_BUILD_ARGS} sbt-on-${SHORT_SCALA_VERSION}.x
 
       # TODO - We should either skip or fix this when trying to do an sbt release.
