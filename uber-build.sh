@@ -1040,7 +1040,7 @@ function makeZincPropertiesFile() {
 
   if ${SBT_PUBLISH}
   then
-    local PUBLISH_REPO="http://private-repo.typesafe.com/typesafe/ide-${SHORT_SCALA_VERSION}"
+    local PUBLISH_REPO="${IDE_M2_REPO}"
   else
     local PUBLISH_REPO="file://${LOCAL_M2_REPO}"
   fi
