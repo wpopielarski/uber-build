@@ -1002,24 +1002,17 @@ function stepScala () {
     SCALA_P2_ID="scala/${FULL_SCALA_VERSION}"
   fi
 
-  # Here we attempt to grab the version.properties file from the zinc nightly build rather
-  # than scala, as we're not rebuilding scala.
-  # TODO - This should pull version.properties for the scala we're building against.
-  if ${SBT_ALWAYS_BUILD} && ${USE_SCALA_VERSIONS_PROPERTIES_FILE}
+  if ${USE_SCALA_VERSIONS_PROPERTIES_FILE} && -z "${SCALA_VERSIONS_PROPERTIES_PATH}"
   then
-    # If we haven't built scala, this will copy the default properties file.
-    if [ ! -f "${SCALA_VERSIONS_PROPERTIES_PATH}" ]
+    # We need a versions.properties file, but none has been set yet
+    if ${RELEASE}
     then
-      SCALA_VERSIONS_PROPERTIES_PATH="${ZINC_DIR}/versions.properties"
-    fi
-  fi
-
-  if ${SBT_REBUILD} && ${USE_SCALA_VERSIONS_PROPERTIES_FILE}
-  then
-    if [ ! -f "${SCALA_VERSIONS_PROPERTIES_PATH}" ]
-    then
-      # no version.properties file available, attempt to create one.
+      # for releases, against released version of Scala, we should be able to recreate the file
       SCALA_VERSIONS_PROPERTIES_PATH=$(extrapolateVersionPropertiesFile)
+    else
+      # otherwise, use a fixed file
+      # TODO: see with the Scala team how they could package this file somewhere we can access for nightly builds
+      SCALA_VERSIONS_PROPERTIES_PATH="${ZINC_DIR}/versions-${SHORT_SCALA_VERSION}.properties"
     fi
   fi
 
