@@ -1068,8 +1068,11 @@ function stepZinc () {
     if ${RELEASE}
     then
       FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE"
-    else
+    elif ${SBT_PUBLISH}
+    then
       FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE-SNAPSHOT"
+    else
+      FULL_SBT_VERSION="${SBT_VERSION}-on-${SCALA_UID}-for-IDE"
     fi
 
     # TODO - Only check availability if we're not in sbt nightly mode.
