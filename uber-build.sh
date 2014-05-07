@@ -571,7 +571,7 @@ function stepSetFlags () {
       ;;
     scala-pr-validator )
       SCALA_VALIDATOR=true
-      SCALA_REBUILD=true
+      SCALA_REBUILD=false
       SBT_REBUILD=true
       IDE_BUILD=true
       ;;
