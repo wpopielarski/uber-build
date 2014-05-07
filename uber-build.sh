@@ -845,56 +845,58 @@ function stepCheckConfiguration () {
 # Scala
 ########
 
-# Attempt to recreate it from the data contained inside the pom of scala-library-all
+# Attempt to recreate the version.properties file from the data contained inside the pom of scala-library-all
 # This will work only for released version of Scala
 function extrapolateVersionPropertiesFile () {
 
   info "Attempt to recreate the Scala version.properties file from maven data"
 
 
-  cd "${TMP_DIR}"
-  rm -rf *
-
-  local SCALA_LIBRARY_ALL_POM="scala-library-all.pom"
-
-  # get the pom file
-  set +e
-  wget -O "${SCALA_LIBRARY_ALL_POM}"  "http://repo1.maven.org/maven2/org/scala-lang/scala-library-all/${FULL_SCALA_VERSION}/scala-library-all-${FULL_SCALA_VERSION}.pom"
-  RES=$?
-  set -e
-
-  if ${RES} != 0
+  if ! checkCache ${SCALA_P2_ID} "true"
   then
-    # this only work if a scala-library-all is available
-    error "unable to find the versions file at '${SCALA_VERSIONS_PROPERTIES_PATH}' and to recreate one for Scala '${FULL_SCALA_VERSION}'."
-  fi
+    cd "${TMP_DIR}"
+    rm -rf *
 
-  local SCALA_LIBRARY_ALL_CLEANED="scala-library-cleaned.txt"
+    local SCALA_LIBRARY_ALL_POM="scala-library-all.pom"
 
-  # extract the artifact ids and versions from the pom file
-  grep -A 1 artifactId scala-library-all.pom | grep -v -- '--' | sed '1~2 {N;s/\n//g}' | grep version | awk -F '[<>]' '{print $3" "$7;}' > "${SCALA_LIBRARY_ALL_CLEANED}"
+    # get the pom file
+    set +e
+    wget -O "${SCALA_LIBRARY_ALL_POM}"  "http://repo1.maven.org/maven2/org/scala-lang/scala-library-all/${FULL_SCALA_VERSION}/scala-library-all-${FULL_SCALA_VERSION}.pom"
+    RES=$?
+    set -e
 
-  # Returns the version number for the given artifact id from the previously generated list
-  # $1 artifact id
-  function extractVersionNumber () {
-    grep "$1" "${SCALA_LIBRARY_ALL_CLEANED}" | awk '{print $2;}'
-  }
+    if ${RES} != 0
+    then
+      # this only work if a scala-library-all is available
+      error "unable to find the versions file at '${SCALA_VERSIONS_PROPERTIES_PATH}' and to recreate one for Scala '${FULL_SCALA_VERSION}'."
+    fi
 
-  # extract the version information needed
-  local PROPERTY_MAVEN_VERSION=$(extractVersionNumber "scala-library")
-  local PROPERTY_SCALA_XML_VERSION=$(extractVersionNumber "scala-xml")
-  local PROPERTY_PARSER_COMBINATORS_VERSION=$(extractVersionNumber "scala-parser-combinators")
-  local PROPERTY_CONTINUATION_VERSION=$(extractVersionNumber "scala-continuations-library")
-  local PROPERTY_SWING_VERSION=$(extractVersionNumber "scala-swing")
-  local PROPERTY_AKKA_VERSION=$(extractVersionNumber "akka-actor")
-  local PROPERTY_ACTOR_MIGRATION_VERSION=$(extractVersionNumber "scala-actors-migration")
+    local SCALA_LIBRARY_ALL_CLEANED="scala-library-cleaned.txt"
 
-  # find the Scala binary version from the end of the scala-xml_xxx artifact id
-  local PROPERTY_SCALA_BINARY_VERSION=$(grep "scala-xml" "${SCALA_LIBRARY_ALL_CLEANED}" | awk -F '[_ ]' '{print $2;}')
+    # extract the artifact ids and versions from the pom file
+    grep -A 1 artifactId scala-library-all.pom | grep -v -- '--' | sed '1~2 {N;s/\n//g}' | grep version | awk -F '[<>]' '{print $3" "$7;}' > "${SCALA_LIBRARY_ALL_CLEANED}"
 
-  # create the properties file
-  mkdir tmp
-  cat > "tmp/versions.properties" << EOF
+    # Returns the version number for the given artifact id from the previously generated list
+    # $1 artifact id
+    function extractVersionNumber () {
+      grep "$1" "${SCALA_LIBRARY_ALL_CLEANED}" | awk '{print $2;}'
+    }
+
+    # extract the version information needed
+    local PROPERTY_MAVEN_VERSION=$(extractVersionNumber "scala-library")
+    local PROPERTY_SCALA_XML_VERSION=$(extractVersionNumber "scala-xml")
+    local PROPERTY_PARSER_COMBINATORS_VERSION=$(extractVersionNumber "scala-parser-combinators")
+    local PROPERTY_CONTINUATION_VERSION=$(extractVersionNumber "scala-continuations-library")
+    local PROPERTY_SWING_VERSION=$(extractVersionNumber "scala-swing")
+    local PROPERTY_AKKA_VERSION=$(extractVersionNumber "akka-actor")
+    local PROPERTY_ACTOR_MIGRATION_VERSION=$(extractVersionNumber "scala-actors-migration")
+
+    # find the Scala binary version from the end of the scala-xml_xxx artifact id
+    local PROPERTY_SCALA_BINARY_VERSION=$(grep "scala-xml" "${SCALA_LIBRARY_ALL_CLEANED}" | awk -F '[_ ]' '{print $2;}')
+
+    # create the properties file
+    mkdir tmp
+    cat > "tmp/versions.properties" << EOF
 maven.version.number=${PROPERTY_MAVEN_VERSION}
 
 starr.version=${FULL_SCALA_VERSION}
@@ -912,8 +914,9 @@ akka-actor.version.number=${PROPERTY_AKKA_VERSION}
 actors-migration.version.number=${PROPERTY_ACTOR_MIGRATION_VERSION}
 EOF
 
-  # cache the generated file
-  storeCache "${SCALA_P2_ID}" tmp "true"
+    # cache the generated file
+    storeCache "${SCALA_P2_ID}" tmp "true"
+  fi
 
   # return the location
   echo $(getCacheLocation ${SCALA_P2_ID} "true")/versions.properties
