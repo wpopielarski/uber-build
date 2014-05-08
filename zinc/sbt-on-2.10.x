@@ -26,7 +26,6 @@
   // Variables that may be external.  We have the defaults here.
   vars: {
     scala-version: ${?SCALA_VERSION}
-    local-m2-repo: ${?LOCAL_M2_REPO}
     publish-repo: ${?PUBLISH_REPO}
     sbt-version: ${?SBT_VERSION}
     sbt-tag: ${?SBT_TAG}
