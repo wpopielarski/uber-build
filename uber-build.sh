@@ -1072,7 +1072,7 @@ function stepZinc () {
 
     if $USE_SCALA_VERSIONS_PROPERTIES_FILE
     then
-      cp "${SCALA_VERSIONS_PROPERTIES_PATH}" .
+      cp "${SCALA_VERSIONS_PROPERTIES_PATH}" versions.properties
     fi
     # TODO - Check to see if we need to download Scala version.properties from 
     #        raw.github.com...
