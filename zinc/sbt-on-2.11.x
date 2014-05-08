@@ -34,7 +34,6 @@
     scala_branch: "2.11"
     scala_branch: ${?SCALA_BRANCH}
     scala-version: ${?SCALA_VERSION}
-    local-m2-repo: ${?LOCAL_M2_REPO}
     publish-repo: ${?PUBLISH_REPO}
     sbt-version: ${?SBT_VERSION}
     sbt-tag: ${?SBT_TAG}

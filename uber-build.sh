@@ -1070,7 +1070,7 @@ function stepZinc () {
     fi
     SBT_VERSION_PROPERTIES_FILE="file:${ZINC_PROPERTIES_FILE}" \
       SCALA_VERSION="${FULL_SCALA_VERSION}" \
-      LOCAL_M2_REPO="file://${LOCAL_M2_REPO}" \
+      LOCAL_M2_REPO="${LOCAL_M2_REPO}" \
       bin/dbuild ${ZINC_BUILD_ARGS} sbt-on-${SHORT_SCALA_VERSION}.x
   fi
 
