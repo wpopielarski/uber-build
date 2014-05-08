@@ -840,7 +840,7 @@ function extrapolateVersionPropertiesFile () {
   info "Attempt to recreate the Scala version.properties file from maven data"
 
 
-  if ! checkCache ${SCALA_P2_ID} "true"
+  if ! checkCache ${SCALA_P2_ID} "true" > /dev/null
   then
     cd "${TMP_DIR}"
     rm -rf *
@@ -853,7 +853,7 @@ function extrapolateVersionPropertiesFile () {
     RES=$?
     set -e
 
-    if ${RES} != 0
+    if [ ${RES} != 0 ]
     then
       # this only work if a scala-library-all is available
       error "unable to find the versions file at '${SCALA_VERSIONS_PROPERTIES_PATH}' and to recreate one for Scala '${FULL_SCALA_VERSION}'."
