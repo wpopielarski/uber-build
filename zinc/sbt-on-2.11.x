@@ -26,6 +26,7 @@
   properties: [
     "file:sbt-on-2.11.x.properties"
     ${?SBT_VERSION_PROPERTIES_FILE}  # If a properties environment vairable exists, we load it
+    ${?DBUILD_LOCAL_PROPERTIES} # If a local properties file is defined, we load it
     "file:versions.properties"
   ]
   // Variables that may be external.  We have the defaults here.
@@ -142,13 +143,7 @@
       }
     }
   }
-  vars.ivyPat: ", [organization]/[module]/(scala_[scalaVersion]/)(sbt_[sbtVersion]/)[revision]/[type]s/[artifact](-[classifier]).[ext]"
-  options.resolvers: {
-    0: "local"
-    1: "a7-maven: https://a7.typesafe.com:8082/artifactory/repo"
-    2: "a7-ivy: https://a7.typesafe.com:8082/artifactory/repo"${vars.ivyPat}
-    3: "uber-build-maven: "${vars.local-m2-repo}
-  }
+  options.resolvers: ${?vars.resolvers}
 }
 
 // {
