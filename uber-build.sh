@@ -1053,37 +1053,25 @@ function stepZinc () {
     FULL_SBT_VERSION="${SBT_VERSION}-on-${SCALA_UID}-for-IDE"
   fi
 
-  # TODO - Only check availability if we're not in sbt nightly mode.
   if ${SBT_ALWAYS_BUILD} || ! checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
   then
     info "Building Zinc using dbuild"
 
     fetchLocalZinc "${ZINC_BUILD_DIR}"
 
-    # TODO - Allow the properties file to be configured or automatically set.
-    if [ -z "$ZINC_PROPERTIES_FILE" ]
-    then 
-      ZINC_PROPERTIES_FILE=$(makeZincPropertiesFile)
-    fi
+    ZINC_PROPERTIES_FILE=$(makeZincPropertiesFile)
 
     info "Detected sbt version: ${FULL_SBT_VERSION}"
-    # TODO - pushd/popd?
     cd "${ZINC_BUILD_DIR}"
 
     if $USE_SCALA_VERSIONS_PROPERTIES_FILE
     then
       cp "${SCALA_VERSIONS_PROPERTIES_PATH}" versions.properties
     fi
-    # TODO - Check to see if we need to download Scala version.properties from 
-    #        raw.github.com...
-
-    # TODO - publish repo should be the default one if we're in release mode.
     SBT_VERSION_PROPERTIES_FILE="file:${ZINC_PROPERTIES_FILE}" \
       SCALA_VERSION="${FULL_SCALA_VERSION}" \
       LOCAL_M2_REPO="file://${LOCAL_M2_REPO}" \
       bin/dbuild ${ZINC_BUILD_ARGS} sbt-on-${SHORT_SCALA_VERSION}.x
-
-    # TODO - We should either skip or fix this when trying to do an sbt release.
   fi
 
   checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
