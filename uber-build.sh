@@ -990,7 +990,7 @@ function stepScala () {
     SCALA_P2_ID="scala/${FULL_SCALA_VERSION}"
   fi
 
-  if ${USE_SCALA_VERSIONS_PROPERTIES_FILE} && -z "${SCALA_VERSIONS_PROPERTIES_PATH}"
+  if ${USE_SCALA_VERSIONS_PROPERTIES_FILE} && [ -z "${SCALA_VERSIONS_PROPERTIES_PATH}" ]
   then
     # We need a versions.properties file, but none has been set yet
     if ${RELEASE}
