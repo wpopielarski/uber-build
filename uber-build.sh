@@ -388,6 +388,7 @@ function fetchLocalZinc() {
     cp -R "${ZINC_DIR}" "$1"
   else
     # We recopy over the scripts only to make sure they're up-to-date
+    cp ${ZINC_DIR}/bin/* "$1/bin"
     cp ${ZINC_DIR}/*.properties "$1/"
     cp ${ZINC_DIR}/sbt-on-* "$1/"
   fi
