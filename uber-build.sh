@@ -380,7 +380,7 @@ function fetchLocalZinc() {
   then
     rm -rf "$1"
     mkdir -p "$(dirname "$1")"
-    if [ ! -x "${ZINC_DIR}/bin/dbuild"]
+    if [ ! -x "${ZINC_DIR}/bin/dbuild" ]
     then
       error "No local zinc build found!  Required in ${ZINC_DIR}."
     fi
