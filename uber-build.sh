@@ -6,7 +6,7 @@ then
 fi
 
 # Initialize file descriptors. May be modified later.
-exec 6>&1 7>&1
+exec 4>&1 6>&1 7>&1
 
 #################################################################
 # Unification script
@@ -62,13 +62,13 @@ function info () {
 # Debug logging for variable
 # $1 - variable name
 function debugValue () {
-  echo "----- $1=${!1}"
+  echo "----- $1=${!1}" >&4
 }
 
 # General debug logging
 # $* - message
 function debug () {
-  echo "----- $*"
+  echo "----- $*" >&4
 }
 
 # General error logging
@@ -841,7 +841,7 @@ function extrapolateVersionPropertiesFile () {
   info "Attempt to recreate the Scala version.properties file from maven data"
 
 
-  if ! checkCache ${SCALA_P2_ID} "true" > /dev/null
+  if ! checkCache ${SCALA_P2_ID} "true"
   then
     cd "${TMP_DIR}"
     rm -rf *
