@@ -1171,13 +1171,25 @@ function stepScalaIDE () {
       export SET_VERSIONS=true
     fi
 
+    # lithium scala version configuration
+    # TODO: detect lithium earlier
+
+    if ${SCALA_211_OR_LATER}
+    then
+      # TODO: check that SCALA210_VERSION is set, for lithium only
+      LITHIUM_ARGS="-Dscala210.version=${SCALA210_VERSION} -Dscala211.version=${FULL_SCALA_VERSION}"
+    elif ${SCALA_210_OR_LATER}
+    then
+      LITHIUM_ARGS="-Dscala210.version=${FULL_SCALA_VERSION}"
+    fi
+
     ./build-all.sh \
       "${MAVEN_ARGS[@]}" \
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
       -Psbt-new \
       -Dscala.version=${FULL_SCALA_VERSION} \
-      -Dversion.tag=${SCALA_IDE_VERSION_TAG} \
+      -Dversion.tag=${SCALA_IDE_VERSION_TAG} ${LITHIUM_ARGS} \
       -Dsbt.version=${SBT_VERSION} \
       -Dsbt.ide.version=${FULL_SBT_VERSION} \
       -Drepo.scala-refactoring=$(getCacheURL ${SCALA_REFACTORING_P2_ID}) \
