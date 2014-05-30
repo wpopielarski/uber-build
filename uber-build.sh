@@ -553,13 +553,15 @@ function stepSetFlags () {
       RELEASE=true
       DRY_RUN=false
       IDE_BUILD=true
-      SIGN_ARTIFACTS=true
+#      SIGN_ARTIFACTS=true
+      SIGN_ARTIFACTS=false
       ;;
     release-dryrun )
       RELEASE=true
       DRY_RUN=true
       IDE_BUILD=true
-      SIGN_ARTIFACTS=true
+#      SIGN_ARTIFACTS=true
+      SIGN_ARTIFACTS=false
       ;;
     nightly )
       RELEASE=true
