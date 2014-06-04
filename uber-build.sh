@@ -6,7 +6,7 @@ then
 fi
 
 # Initialize file descriptors. May be modified later.
-exec 6>&1 7>&1
+exec 4>&1 6>&1 7>&1
 
 #################################################################
 # Unification script
@@ -31,6 +31,15 @@ mkdir "${TMP_DIR}"
 # Timestamp used for logging and marking zip files
 TIMESTAMP=`date '+%Y%m%d-%H%M'`
 
+# dbuild needs a JOB_NAME and a NODE_NAME. Provide one if it is not set yet.
+true ${JOB_NAME:=local}
+true ${NODE_NAME:=local}
+true ${BUILD_URL:=http://to.no.where/}
+
+export JOB_NAME
+export NODE_NAME
+export BUILD_URL
+
 # ant options. The Scala build needs a fair amount of memory
 export ANT_OPTS="-Xms512M -Xmx2048M -Xss1M -XX:MaxPermSize=128M"
 
@@ -53,13 +62,13 @@ function info () {
 # Debug logging for variable
 # $1 - variable name
 function debugValue () {
-  echo "----- $1=${!1}"
+  echo "----- $1=${!1}" >&4
 }
 
 # General debug logging
 # $* - message
 function debug () {
-  echo "----- $*"
+  echo "----- $*" >&4
 }
 
 # General error logging
@@ -364,6 +373,42 @@ function fetchGitBranch () {
 
 }
 
+# Pulls the local zinc build from our directory into the target directory to actually execute.
+# $1 - The directory into which we copy zinc.
+function fetchLocalZinc() {
+  if [ ! -x "$1/bin/dbuild" ]
+  then
+    rm -rf "$1"
+    mkdir -p "$(dirname "$1")"
+    if [ ! -x "${ZINC_DIR}/bin/dbuild" ]
+    then
+      error "No local zinc build found!  Required in ${ZINC_DIR}."
+    fi
+
+    cp -R "${ZINC_DIR}" "$1"
+  else
+    # We recopy over the scripts only to make sure they're up-to-date
+    cp ${ZINC_DIR}/bin/* "$1/bin"
+    cp ${ZINC_DIR}/*.properties "$1/"
+    cp ${ZINC_DIR}/sbt-on-* "$1/"
+  fi
+
+}
+
+##################
+# Properties Helpers
+##################
+
+# Reads the given property value from a properties file.  Intended to be used as:
+#   $(readProperty <file> <prop>)
+# $1 The property file
+# $2 The property
+function readProperty() {
+  local prop="$2"
+  echo $(grep -x "sbt-version=.*" "$1" | awk '{ split($0,a,"="); print a[2] }')
+}
+
+
 ##################
 ##################
 # The build steps
@@ -487,11 +532,13 @@ function stepSetFlags () {
 # the flags
   RELEASE=false
   DRY_RUN=true
+  IDE_BUILD=false
   SCALA_RELEASE=false
   SCALA_VALIDATOR=false
   SCALA_REBUILD=false
   SBT_RELEASE=false
-  SBT_REBUILD=false
+  SBT_ALWAYS_BUILD=false
+  SBT_PUBLISH=false
   SIGN_ARTIFACTS=false
   WORKSHEET_PLUGIN=false
   PLAY_PLUGIN=false
@@ -505,33 +552,43 @@ function stepSetFlags () {
     release )
       RELEASE=true
       DRY_RUN=false
+      IDE_BUILD=true
       SIGN_ARTIFACTS=true
       ;;
     release-dryrun )
       RELEASE=true
       DRY_RUN=true
+      IDE_BUILD=true
       SIGN_ARTIFACTS=true
       ;;
     nightly )
       RELEASE=true
       DRY_RUN=true
-      SIGN_ARTIFACTS=false
+      IDE_BUILD=true
       ;;
     scala-pr-validator )
       SCALA_VALIDATOR=true
-      SBT_REBUILD=true
+      SCALA_REBUILD=false
+      IDE_BUILD=true
       ;;
     scala-pr-rebuild )
       SCALA_VALIDATOR=true
       SCALA_REBUILD=true
-      SBT_REBUILD=true
+      IDE_BUILD=true
       ;;
     scala-local-build )
       SCALA_REBUILD=true
-      SBT_REBUILD=true
+      IDE_BUILD=true
+      ;;
+    sbt-nightly )
+      SBT_ALWAYS_BUILD=true
+      ;;
+    sbt-publish )
+      SBT_ALWAYS_BUILD=true
+      SBT_PUBLISH=true
       ;;
     * )
-      missingParameterChoice "OPERATION" "release, release-dryrun, scala-pr-validator, scala-pr-rebuild, scala-local-build"
+      missingParameterChoice "OPERATION" "release, release-dryrun, nightly, scala-pr-validator, scala-pr-rebuild, scala-local-build, sbt-nightly, sbt-publish"
       ;;
   esac
 
@@ -679,19 +736,19 @@ function stepCheckConfiguration () {
 
   checkParameters "SBT_VERSION"
 
-  if ${SBT_REBUILD}
+  checkParameters "ZINC_BUILD_DIR"
+  if [ -n "${prRepoUrl}" ]
   then
-    checkParameters "ZINC_BUILD_DIR" "ZINC_BUILD_GIT_REPO" "ZINC_BUILD_GIT_BRANCH"
-    if [ -n "${prRepoUrl}" ]
-    then
-      ZINC_BUILD_ARGS="-DprRepoUrl=${prRepoUrl}"
-    fi
+    ZINC_BUILD_ARGS="-DprRepoUrl=${prRepoUrl}"
   fi
 
-  checkParameters "ECLIPSE_PLATFORM"
-  checkParameters "SCALA_IDE_DIR" "SCALA_IDE_GIT_REPO" "SCALA_IDE_GIT_BRANCH" "SCALA_IDE_VERSION_TAG"
-  checkParameters "SCALA_REFACTORING_DIR" "SCALA_REFACTORING_GIT_REPO" "SCALA_REFACTORING_GIT_BRANCH"
-  checkParameters "SCALARIFORM_DIR" "SCALARIFORM_GIT_REPO" "SCALARIFORM_GIT_BRANCH"
+  if ${IDE_BUILD}
+  then
+    checkParameters "ECLIPSE_PLATFORM"
+    checkParameters "SCALA_IDE_DIR" "SCALA_IDE_GIT_REPO" "SCALA_IDE_GIT_BRANCH" "SCALA_IDE_VERSION_TAG"
+    checkParameters "SCALA_REFACTORING_DIR" "SCALA_REFACTORING_GIT_REPO" "SCALA_REFACTORING_GIT_BRANCH"
+    checkParameters "SCALARIFORM_DIR" "SCALARIFORM_GIT_REPO" "SCALARIFORM_GIT_BRANCH"
+  fi
 
   if ${WORKSHEET_PLUGIN}
   then
@@ -737,7 +794,6 @@ function stepCheckConfiguration () {
   case "${SCALA_VERSION}" in
     2.10.* )
       SCALA_PROFILE="scala-2.10.x"
-      SCALA_REPO_SUFFIX="210x"
       ECOSYSTEM_SCALA_VERSION="scala210"
       SHORT_SCALA_VERSION="2.10"
       USE_SCALA_VERSIONS_PROPERTIES_FILE=false
@@ -745,7 +801,6 @@ function stepCheckConfiguration () {
       ;;
     2.11.* )
       SCALA_PROFILE="scala-2.11.x"
-      SCALA_REPO_SUFFIX="211x"
       ECOSYSTEM_SCALA_VERSION="scala211"
       SHORT_SCALA_VERSION="2.11"
       USE_SCALA_VERSIONS_PROPERTIES_FILE=true
@@ -757,24 +812,104 @@ function stepCheckConfiguration () {
       ;;
   esac
 
-  case "${ECLIPSE_PLATFORM}" in
-    indigo )
-      ECLIPSE_PROFILE="eclipse-indigo"
-      ECOSYSTEM_ECLIPSE_VERSION="e37"
-      ;;
-    juno )
-      ECLIPSE_PROFILE="eclipse-juno"
-      ECOSYSTEM_ECLIPSE_VERSION="e38"
-      ;;
-    * )
-      error "Not supported eclipse platform: ${ECLIPSE_PLATFORM}."
-      ;;
-  esac
+  if ${IDE_BUILD}
+  then
+    case "${ECLIPSE_PLATFORM}" in
+      indigo )
+        ECLIPSE_PROFILE="eclipse-indigo"
+        ECOSYSTEM_ECLIPSE_VERSION="e37"
+        ;;
+      juno )
+        ECLIPSE_PROFILE="eclipse-juno"
+        ECOSYSTEM_ECLIPSE_VERSION="e38"
+        ;;
+      * )
+        error "Not supported eclipse platform: ${ECLIPSE_PLATFORM}."
+        ;;
+    esac
+  fi
 }
 
 ########
 # Scala
 ########
+
+# Attempt to recreate the version.properties file from the data contained inside the pom of scala-library-all
+# This will work only for released version of Scala
+function extrapolateVersionPropertiesFile () {
+
+  info "Attempt to recreate the Scala version.properties file from maven data"
+
+
+  if ! checkCache ${SCALA_P2_ID} "true"
+  then
+    cd "${TMP_DIR}"
+    rm -rf *
+
+    local SCALA_LIBRARY_ALL_POM="scala-library-all.pom"
+
+    # get the pom file
+    set +e
+    wget -O "${SCALA_LIBRARY_ALL_POM}"  "http://repo1.maven.org/maven2/org/scala-lang/scala-library-all/${FULL_SCALA_VERSION}/scala-library-all-${FULL_SCALA_VERSION}.pom"
+    RES=$?
+    set -e
+
+    if [ ${RES} != 0 ]
+    then
+      # this only work if a scala-library-all is available
+      error "unable to find the versions file at '${SCALA_VERSIONS_PROPERTIES_PATH}' and to recreate one for Scala '${FULL_SCALA_VERSION}'."
+    fi
+
+    local SCALA_LIBRARY_ALL_CLEANED="scala-library-cleaned.txt"
+
+    # extract the artifact ids and versions from the pom file
+    grep -A 1 artifactId scala-library-all.pom | grep -v -- '--' | sed '1~2 {N;s/\n//g}' | grep version | awk -F '[<>]' '{print $3" "$7;}' > "${SCALA_LIBRARY_ALL_CLEANED}"
+
+    # Returns the version number for the given artifact id from the previously generated list
+    # $1 artifact id
+    function extractVersionNumber () {
+      grep "$1" "${SCALA_LIBRARY_ALL_CLEANED}" | awk '{print $2;}'
+    }
+
+    # extract the version information needed
+    local PROPERTY_MAVEN_VERSION=$(extractVersionNumber "scala-library")
+    local PROPERTY_SCALA_XML_VERSION=$(extractVersionNumber "scala-xml")
+    local PROPERTY_PARSER_COMBINATORS_VERSION=$(extractVersionNumber "scala-parser-combinators")
+    local PROPERTY_CONTINUATION_VERSION=$(extractVersionNumber "scala-continuations-library")
+    local PROPERTY_SWING_VERSION=$(extractVersionNumber "scala-swing")
+    local PROPERTY_AKKA_VERSION=$(extractVersionNumber "akka-actor")
+    local PROPERTY_ACTOR_MIGRATION_VERSION=$(extractVersionNumber "scala-actors-migration")
+
+    # find the Scala binary version from the end of the scala-xml_xxx artifact id
+    local PROPERTY_SCALA_BINARY_VERSION=$(grep "scala-xml" "${SCALA_LIBRARY_ALL_CLEANED}" | awk -F '[_ ]' '{print $2;}')
+
+    # create the properties file
+    mkdir tmp
+    cat > "tmp/versions.properties" << EOF
+maven.version.number=${PROPERTY_MAVEN_VERSION}
+
+starr.version=${FULL_SCALA_VERSION}
+
+scala.binary.version=${PROPERTY_SCALA_BINARY_VERSION}
+scala.full.version=${FULL_SCALA_VERSION}
+
+scala-xml.version.number=${PROPERTY_SCALA_XML_VERSION}
+scala-parser-combinators.version.number=${PROPERTY_PARSER_COMBINATORS_VERSION}
+scala-continuations-plugin.version.number=${PROPERTY_CONTINUATION_VERSION}
+scala-continuations-library.version.number=${PROPERTY_CONTINUATION_VERSION}
+scala-swing.version.number=${PROPERTY_SWING_VERSION}
+
+akka-actor.version.number=${PROPERTY_AKKA_VERSION}
+actors-migration.version.number=${PROPERTY_ACTOR_MIGRATION_VERSION}
+EOF
+
+    # cache the generated file
+    storeCache "${SCALA_P2_ID}" tmp "true"
+  fi
+
+  # return the location
+  echo $(getCacheLocation ${SCALA_P2_ID} "true")/versions.properties
+}
 
 function stepScala () {
   printStep "Scala"
@@ -852,14 +987,21 @@ function stepScala () {
 
   else
     # already existing Scala binaries are used.
-    FULL_SCALA_VERSION=${SCALA_VERSION}
+    FULL_SCALA_VERSION="${SCALA_VERSION}"
+    SCALA_P2_ID="scala/${FULL_SCALA_VERSION}"
   fi
 
-  if ${SBT_REBUILD} && ${USE_SCALA_VERSIONS_PROPERTIES_FILE}
+  if ${USE_SCALA_VERSIONS_PROPERTIES_FILE} && [ -z "${SCALA_VERSIONS_PROPERTIES_PATH}" ]
   then
-    if [ ! -f "${SCALA_VERSIONS_PROPERTIES_PATH}" ]
+    # We need a versions.properties file, but none has been set yet
+    if ${RELEASE}
     then
-      error "unable to find the versions file at '${SCALA_VERSIONS_PROPERTIES_PATH}'"
+      # for releases, against released version of Scala, we should be able to recreate the file
+      SCALA_VERSIONS_PROPERTIES_PATH=$(extrapolateVersionPropertiesFile)
+    else
+      # otherwise, use a fixed file
+      # TODO: see with the Scala team how they could package this file somewhere we can access for nightly builds
+      SCALA_VERSIONS_PROPERTIES_PATH="${ZINC_DIR}/versions-${SHORT_SCALA_VERSION}.properties"
     fi
   fi
 
@@ -872,39 +1014,68 @@ function stepScala () {
 # Zinc
 #######
 
+# Constructs a zinc properties file in ZINC_DIR and gives the name of it.
+function makeZincPropertiesFile() {
+  local filename="current-zinc-build.properties"
+  local properties_file="${ZINC_BUILD_DIR}/${filename}"
+  info "Writing properties: ${properties_file}"
+
+  if ${SBT_PUBLISH}
+  then
+    local PUBLISH_REPO="${IDE_M2_REPO}"
+  else
+    local PUBLISH_REPO="file://${LOCAL_M2_REPO}"
+  fi
+
+  cat > "${properties_file}" << EOF
+publish-repo=${PUBLISH_REPO}
+sbt-tag=${SBT_TAG}
+sbt-version=${FULL_SBT_VERSION}
+EOF
+
+  info "$(cat "${properties_file}")"
+
+  # Returns the name of the generated file
+  echo "${filename}"
+}
+
 function stepZinc () {
   printStep "Zinc"
 
-  # for Scala pr validation, custom build sbt binaries are used.
-  if ${SBT_REBUILD}
+  IDE_M2_REPO="http://typesafe.artifactoryonline.com/typesafe/ide-${SHORT_SCALA_VERSION}"
+
+  if ${RELEASE}
+  then
+    FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE"
+  elif ${SBT_PUBLISH}
   then
     FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE-SNAPSHOT"
-    if ! checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
-    then
-      info "Building Zinc using dbuild"
-
-      fetchGitBranch "${ZINC_BUILD_DIR}" "${ZINC_BUILD_GIT_REPO}" "${ZINC_BUILD_GIT_BRANCH}" NaN
-
-      cd "${ZINC_BUILD_DIR}"
-
-      if $USE_SCALA_VERSIONS_PROPERTIES_FILE
-      then
-        cp "${SCALA_VERSIONS_PROPERTIES_PATH}" .
-      fi
-
-      SCALA_VERSION="${FULL_SCALA_VERSION}" \
-        PUBLISH_REPO="file://${LOCAL_M2_REPO}" \
-        LOCAL_M2_REPO="${LOCAL_M2_REPO}" \
-        bin/dbuild ${ZINC_BUILD_ARGS} sbt-on-${SHORT_SCALA_VERSION}.x
-
-      checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}"
-    fi
   else
-    # already existing sbt binaries are used.
-    FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE${ZINC_BUILD_VERSION_SUFFIX}"
-    IDE_M2_REPO="http://typesafe.artifactoryonline.com/typesafe/ide-${SHORT_SCALA_VERSION}"
-    checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
+    FULL_SBT_VERSION="${SBT_VERSION}-on-${SCALA_UID}-for-IDE"
   fi
+
+  if ${SBT_ALWAYS_BUILD} || ! checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
+  then
+    info "Building Zinc using dbuild"
+
+    fetchLocalZinc "${ZINC_BUILD_DIR}"
+
+    ZINC_PROPERTIES_FILE=$(makeZincPropertiesFile)
+
+    info "Detected sbt version: ${FULL_SBT_VERSION}"
+    cd "${ZINC_BUILD_DIR}"
+
+    if $USE_SCALA_VERSIONS_PROPERTIES_FILE
+    then
+      cp "${SCALA_VERSIONS_PROPERTIES_PATH}" versions.properties
+    fi
+    SBT_VERSION_PROPERTIES_FILE="file:${ZINC_PROPERTIES_FILE}" \
+      SCALA_VERSION="${FULL_SCALA_VERSION}" \
+      LOCAL_M2_REPO="${LOCAL_M2_REPO}" \
+      bin/dbuild ${ZINC_BUILD_ARGS} sbt-on-${SHORT_SCALA_VERSION}.x
+  fi
+
+  checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
 
   SBT_UID=${FULL_SBT_VERSION}
 }
@@ -1000,13 +1171,25 @@ function stepScalaIDE () {
       export SET_VERSIONS=true
     fi
 
+    # lithium scala version configuration
+    # TODO: detect lithium earlier
+
+    if ${SCALA_211_OR_LATER}
+    then
+      # TODO: check that SCALA210_VERSION is set, for lithium only
+      LITHIUM_ARGS="-Dscala210.version=${SCALA210_VERSION} -Dscala211.version=${FULL_SCALA_VERSION}"
+    elif ${SCALA_210_OR_LATER}
+    then
+      LITHIUM_ARGS="-Dscala210.version=${FULL_SCALA_VERSION}"
+    fi
+
     ./build-all.sh \
       "${MAVEN_ARGS[@]}" \
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
       -Psbt-new \
       -Dscala.version=${FULL_SCALA_VERSION} \
-      -Dversion.tag=${SCALA_IDE_VERSION_TAG} \
+      -Dversion.tag=${SCALA_IDE_VERSION_TAG} ${LITHIUM_ARGS} \
       -Dsbt.version=${SBT_VERSION} \
       -Dsbt.ide.version=${FULL_SBT_VERSION} \
       -Drepo.scala-refactoring=$(getCacheURL ${SCALA_REFACTORING_P2_ID}) \
@@ -1277,10 +1460,14 @@ stepCheckConfiguration
 stepScala
 
 stepZinc
-stepScalaRefactoring
-stepScalariform
 
-stepScalaIDE
+if ${IDE_BUILD}
+then 
+  stepScalaRefactoring
+  stepScalariform
+
+  stepScalaIDE
+fi
 
 if ${WORKSHEET_PLUGIN}
 then
