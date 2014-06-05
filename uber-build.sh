@@ -592,26 +592,26 @@ function stepSetFlags () {
       ;;
   esac
 
+  # Check the plugins to build.
+  for PLUGIN in ${PLUGINS}
+  do
+    case "${PLUGIN}" in
+      worksheet )
+        WORKSHEET_PLUGIN=true
+        ;;
+      play )
+        PLAY_PLUGIN=true
+        ;;
+      search )
+        SEARCH_PLUGIN=true
+        ;;
+      * )
+        error "Unknown value in PLUGINS. Should be one of: worksheet play search."
+    esac
+  done
+
   if ${RELEASE}
   then
-# Check the plugins to build.
-    for PLUGIN in ${PLUGINS}
-    do
-      case "${PLUGIN}" in
-        worksheet )
-          WORKSHEET_PLUGIN=true
-          ;;
-        play )
-          PLAY_PLUGIN=true
-          ;;
-        search )
-          SEARCH_PLUGIN=true
-          ;;
-        * )
-          error "Unknown value in PLUGINS. Should be one of: worksheet play search."
-      esac
-    done
-
 # Check the type of release.
     case "${BUILD_TYPE}" in
       dev | stable )
@@ -791,6 +791,7 @@ function stepCheckConfiguration () {
 # set extra variables. There are different ways to reference the Scala and Eclipse versions.
   SCALA_210_OR_LATER=false
   SCALA_211_OR_LATER=false
+  SCALA_212_OR_LATER=false
   case "${SCALA_VERSION}" in
     2.10.* )
       SCALA_PROFILE="scala-2.10.x"
@@ -806,6 +807,15 @@ function stepCheckConfiguration () {
       USE_SCALA_VERSIONS_PROPERTIES_FILE=true
       SCALA_210_OR_LATER=true
       SCALA_211_OR_LATER=true
+      ;;
+    2.12.* )
+      SCALA_PROFILE="scala-2.12.x"
+      ECOSYSTEM_SCALA_VERSION="scala212"
+      SHORT_SCALA_VERSION="2.12"
+      USE_SCALA_VERSIONS_PROPERTIES_FILE=true
+      SCALA_210_OR_LATER=true
+      SCALA_211_OR_LATER=true
+      SCALA_212_OR_LATER=true
       ;;
     * )
       error "Not supported version of Scala: ${SCALA_VERSION}."
