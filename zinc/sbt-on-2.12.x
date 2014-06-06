@@ -119,7 +119,7 @@
     deploy: [
       {
         uri=${?vars.publish-repo},
-        credentials="/home/luc/.credentials",
+        credentials=${HOME}"/.credentials",
         projects:["sbt-republish"]
       }
     ]

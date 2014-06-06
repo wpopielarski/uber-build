@@ -1052,7 +1052,7 @@ EOF
 function stepZinc () {
   printStep "Zinc"
 
-  IDE_M2_REPO="http://typesafe.artifactoryonline.com/typesafe/ide-${SHORT_SCALA_VERSION}"
+  IDE_M2_REPO="http://private-repo.typesafe.com/typesafe/ide-${SHORT_SCALA_VERSION}"
 
   if ${RELEASE}
   then
