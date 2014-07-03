@@ -823,6 +823,10 @@ function stepCheckConfiguration () {
         ECLIPSE_PROFILE="eclipse-juno"
         ECOSYSTEM_ECLIPSE_VERSION="e38"
         ;;
+      kepler )
+        ECLIPSE_PROFILE="eclipse-kepler"
+        ECOSYSTEM_ECLIPSE_VERSION="e38"
+        ;;
       * )
         error "Not supported eclipse platform: ${ECLIPSE_PLATFORM}."
         ;;
