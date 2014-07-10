@@ -1,9 +1,10 @@
-# Warning: THIS FILE IS USED IN PR VALIDATION. DO NOT MODIFY WITHOUT
-#          NOTIFYING SCALA, SCALA-IDE TEAMS
-#  Default Nightly job: https://jenkins-dbuild.typesafe.com:8499/job/sbt-nightly-for-ide-on-scala-2.10.x/
-# - If you need a different branch ping qbranch@typesafe.com
-# - If you need to modify the version number string ping ????
+# This is the dbuild configuration to build zinc and its dependencies on Scala 2.10.x
+#  It is run through the Scala IDE parametrized job: https://jenkins.scala-ide.org:8496/jenkins/job/parameterized-zinc/ 
+#  and other uber-build runs.
 
+# There should not be any need to change this file. Except to change the base repositories, most parameters can be modified
+# at the uber-build configuration level (check the sbt-publish configuration for examples) or by tweaking the properties file
+# (check stepZinc inside the uber-build script).
 
 # This file knows how to build sbt inside Ivy and publish *maven nightly artifacts* for consumption.
 # Combined, we run tests to ensure that sanity exists for these artifacts (specifically, does Zinc build/run).
@@ -98,7 +99,7 @@
     deploy: [
       {
         uri=${?vars.publish-repo},
-        credentials="/home/luc/.credentials",
+        credentials=${HOME}"/.credentials",
         projects:["sbt-republish"]
       }
     ]

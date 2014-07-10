@@ -1,4 +1,4 @@
-# This is the dbuild configuration to build zinc and its dependencies on Scala 2.11.x
+# This is the dbuild configuration to build zinc and its dependencies on Scala 2.12.x
 #  It is run through the Scala IDE parametrized job: https://jenkins.scala-ide.org:8496/jenkins/job/parameterized-zinc/ 
 #  and other uber-build runs.
 
@@ -8,7 +8,7 @@
 
 # This file knows how to build sbt inside Ivy and publish *maven nightly artifacts* for consumption.
 # Combined, we run tests to ensure that sanity exists for these artifacts (specifically, does Zinc build/run).
-# This build is *tied* to the 2.11.x scala series.  Scala's modularization requires different build files for
+# This build is *tied* to the 2.12.x scala series.  Scala's modularization requires different build files for
 # both 2.10.x and 2.11.x series.  The main difference is in how modules are grabbed.
 # The four projects that are sbt related are:
 #
@@ -25,14 +25,14 @@
 # - Test locally with the command `SBT_VERSION_PROPERTIES_FILE=file:my.properties ./bin/dbuild sbt-on-2.11.x`
 {
   properties: [
-    "file:sbt-on-2.11.x.properties"
+    "file:sbt-on-2.12.x.properties"
     ${?SBT_VERSION_PROPERTIES_FILE}  # If a properties environment vairable exists, we load it
     ${?DBUILD_LOCAL_PROPERTIES} # If a local properties file is defined, we load it
     "file:versions.properties"
   ]
   // Variables that may be external.  We have the defaults here.
   vars: {
-    scala_branch: "2.11"
+    scala_branch: "2.12"
     scala_branch: ${?SCALA_BRANCH}
     scala-version: ${?SCALA_VERSION}
     publish-repo: ${?PUBLISH_REPO}
