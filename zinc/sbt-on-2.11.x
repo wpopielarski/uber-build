@@ -84,12 +84,12 @@
       },
       {
         name: scalacheck
-        extra.sbt-version: "0.13.0",
+        extra.sbt-version: "0.13.5",
         uri: "https://github.com/rickynils/scalacheck.git#"${vars.scalacheck-tag}
       },
       {
         name:   "sbinary",
-        extra.sbt-version: "0.13.0",
+        extra.sbt-version: "0.13.5",
         uri:    "git://github.com/harrah/sbinary.git#"${vars.sbinary-tag}
       }, {
         name:   "sbt",
@@ -108,10 +108,12 @@
       }, {
         name:   "sbt-republish",
         uri:    "http://github.com/typesafehub/sbt-republish.git#"${vars.sbt-republish-tag},
-        set-version: ${vars.sbt-version}
+        set-version: ${vars.sbt-version},
+        extra.sbt-version: "0.13.5"
       }, {
         name:   "zinc",
-        uri:    "https://github.com/typesafehub/zinc.git#"${vars.zinc-tag}
+        uri:    "https://github.com/typesafehub/zinc.git#"${vars.zinc-tag},
+        extra.sbt-version: "0.13.5"
       }
     ],
     cross-version:standard,
@@ -124,36 +126,6 @@
         projects:["sbt-republish"]
       }
     ]
-    notifications: {
-      send:[{
-        projects: "."
-        send.to: "qbranch@typesafe.com"
-        when: bad
-      },{ 
-        projects: "."
-        kind: console
-        when: always
-      }]
-      default.send: {
-        from: "jenkins-dbuild <antonio.cunei@typesafe.com>"
-        smtp:{
-          server: "psemail.epfl.ch"
-          encryption: none
-        }
-      }
-    }
   }
   options.resolvers: ${?vars.resolvers}
 }
-
-// {
-//   name:  "scala-compiler-doc",
-//   system: "ivy",
-//   set-version: ${vars.scala-compiler-doc.version.number}
-//   uri:    "ivy:org.scala-lang.modules#scala-compiler-doc_"${vars.scala.binary.version}";"${vars.scala-compiler-doc.version.number}
-// }, {
-//   name:  "scala-compiler-interactive",
-//   system: "ivy",
-//   set-version: ${vars.scala-compiler-interactive.version.number}
-//   uri:    "ivy:org.scala-lang.modules#scala-compiler-interactive_"${vars.scala.binary.version}";"${vars.scala-compiler-interactive.version.number}
-// },
