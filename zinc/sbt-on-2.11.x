@@ -48,7 +48,6 @@
         deps.ignore: "org.scalacheck#scalacheck"
         extra.parts: {
           cross-version: standard
-          sbt-version: "0.13.0"
         }
         # TODO - We want the scala version used to be 
         #        given to use from the IDE build, if we can.
@@ -84,12 +83,11 @@
       },
       {
         name: scalacheck
-        extra.sbt-version: "0.13.5",
         uri: "https://github.com/rickynils/scalacheck.git#"${vars.scalacheck-tag}
       },
       {
         name:   "sbinary",
-        extra.sbt-version: "0.13.5",
+        extra.sbt-version: "0.13.6",
         uri:    "git://github.com/harrah/sbinary.git#"${vars.sbinary-tag}
       }, {
         name:   "sbt",
