@@ -110,10 +110,6 @@
         uri:    "http://github.com/typesafehub/sbt-republish.git#"${vars.sbt-republish-tag},
         set-version: ${vars.sbt-version}
         extra.sbt-version: "0.13.5"
-      }, {
-        name:   "zinc",
-        uri:    "https://github.com/typesafehub/zinc.git#"${vars.zinc-tag}
-        extra.sbt-version: "0.13.5"
       }
     ],
     cross-version:standard,
