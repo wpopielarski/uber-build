@@ -48,7 +48,6 @@
         deps.ignore: "org.scalacheck#scalacheck"
         extra.parts: {
           cross-version: standard
-          sbt-version: "0.13.0"
         }
         # TODO - We want the scala version used to be 
         #        given to use from the IDE build, if we can.
@@ -84,12 +83,11 @@
       },
       {
         name: scalacheck
-        extra.sbt-version: "0.13.0",
         uri: "https://github.com/rickynils/scalacheck.git#"${vars.scalacheck-tag}
       },
       {
         name:   "sbinary",
-        extra.sbt-version: "0.13.0",
+        extra.sbt-version: "0.13.6",
         uri:    "git://github.com/harrah/sbinary.git#"${vars.sbinary-tag}
       }, {
         name:   "sbt",
@@ -108,10 +106,8 @@
       }, {
         name:   "sbt-republish",
         uri:    "http://github.com/typesafehub/sbt-republish.git#"${vars.sbt-republish-tag},
-        set-version: ${vars.sbt-version}
-      }, {
-        name:   "zinc",
-        uri:    "https://github.com/typesafehub/zinc.git#"${vars.zinc-tag}
+        set-version: ${vars.sbt-version},
+        extra.sbt-version: "0.13.6"
       }
     ],
     cross-version:standard,
@@ -124,36 +120,6 @@
         projects:["sbt-republish"]
       }
     ]
-    notifications: {
-      send:[{
-        projects: "."
-        send.to: "qbranch@typesafe.com"
-        when: bad
-      },{ 
-        projects: "."
-        kind: console
-        when: always
-      }]
-      default.send: {
-        from: "jenkins-dbuild <antonio.cunei@typesafe.com>"
-        smtp:{
-          server: "psemail.epfl.ch"
-          encryption: none
-        }
-      }
-    }
   }
   options.resolvers: ${?vars.resolvers}
 }
-
-// {
-//   name:  "scala-compiler-doc",
-//   system: "ivy",
-//   set-version: ${vars.scala-compiler-doc.version.number}
-//   uri:    "ivy:org.scala-lang.modules#scala-compiler-doc_"${vars.scala.binary.version}";"${vars.scala-compiler-doc.version.number}
-// }, {
-//   name:  "scala-compiler-interactive",
-//   system: "ivy",
-//   set-version: ${vars.scala-compiler-interactive.version.number}
-//   uri:    "ivy:org.scala-lang.modules#scala-compiler-interactive_"${vars.scala.binary.version}";"${vars.scala-compiler-interactive.version.number}
-// },
