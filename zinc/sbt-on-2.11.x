@@ -87,7 +87,7 @@
       },
       {
         name:   "sbinary",
-        extra.sbt-version: "0.13.6",
+        extra.sbt-version: "0.13.5",
         uri:    "git://github.com/harrah/sbinary.git#"${vars.sbinary-tag}
       }, {
         name:   "sbt",
@@ -107,7 +107,7 @@
         name:   "sbt-republish",
         uri:    "http://github.com/typesafehub/sbt-republish.git#"${vars.sbt-republish-tag},
         set-version: ${vars.sbt-version},
-        extra.sbt-version: "0.13.6"
+        extra.sbt-version: "0.13.5"
       }
     ],
     cross-version:standard,
