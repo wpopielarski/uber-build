@@ -543,6 +543,7 @@ function stepSetFlags () {
   WORKSHEET_PLUGIN=false
   PLAY_PLUGIN=false
   SEARCH_PLUGIN=false
+  SCALATEST_PLUGIN=false
   PUBLISH=false
 # set in during check configuration 
   USE_SCALA_VERSIONS_PROPERTIES_FILE=false
@@ -605,8 +606,11 @@ function stepSetFlags () {
       search )
         SEARCH_PLUGIN=true
         ;;
+      scalatest )
+        SCALATEST_PLUGIN=true
+        ;;
       * )
-        error "Unknown value in PLUGINS. Should be one of: worksheet play search."
+        error "Unknown value in PLUGINS. Should be one of: worksheet play search scalatest."
     esac
   done
 
@@ -763,6 +767,11 @@ function stepCheckConfiguration () {
   if ${SEARCH_PLUGIN}
   then
     checkParameters "SEARCH_PLUGIN_DIR" "SEARCH_PLUGIN_GIT_REPO" "SEARCH_PLUGIN_GIT_BRANCH" "SEARCH_PLUGIN_VERSION_TAG"
+  fi
+
+  if ${SCALATEST_PLUGIN}
+  then
+    checkParameters "SCALATEST_PLUGIN_P2_REPO" "SCALATEST_PLUGIN_VERSION"
   fi
 
   if ${PRODUCT}
@@ -1302,6 +1311,38 @@ function stepPlugin () {
   fi
 }
 
+##################
+# ScalaTest
+##################
+
+function stepScalaTest () {
+  printStep "ScalatTest"
+
+  SCALATEST_PLUGIN_UID=${SCALATEST_PLUGIN_VERSION}
+
+  SCALATEST_PLUGIN_P2_ID=${SCALATEST_PLUGIN_UID}
+
+  if ! checkCache ${SCALATEST_PLUGIN_P2_ID}
+  then
+    rm -rf ${SCALATEST_BUILD_DIR}
+    mkdir -p ${SCALATEST_BUILD_DIR}/copy-version
+
+    # copy and replace placeholders
+    sed \
+      "s%PH_ECLIPSE_P2%http://download.eclipse.org/releases/${ECLIPSE_PLATFORM}%;s%PH_SCALAIDE_P2%file:$(getCacheLocation ${SCALA_IDE_P2_ID})%;s%PH_SCALATEST_P2%${SCALATEST_PLUGIN_P2_REPO}%" \
+      ${SCALATEST_DIR}/copy-version/pom.xml > ${SCALATEST_BUILD_DIR}/copy-version/pom.xml
+    sed \
+      "s%PH_VERSION%${SCALATEST_PLUGIN_VERSION}%" \
+      ${SCALATEST_DIR}/copy-version/site.xml > ${SCALATEST_BUILD_DIR}/copy-version/site.xml
+
+    cd ${SCALATEST_BUILD_DIR}/copy-version
+
+    mvn package
+
+    storeCache ${SCALATEST_PLUGIN_P2_ID} target/site
+  fi
+}
+
 ###########
 # Product
 ###########
@@ -1332,9 +1373,16 @@ function stepProduct () {
     PRODUCT_P2_ID=${PRODUCT_P2_ID}/S-${SEARCH_PLUGIN_UID}
   fi
 
+  if ${SCALATEST_PLUGIN}
+  then
+    PRODUCT_P2_ID=${PRODUCT_P2_ID}/T-${SCALATEST_PLUGIN_UID}
+  fi
+
   if ! checkCache ${PRODUCT_P2_ID}
   then
     info "Generate merged update site for Product build"
+
+    PRODUCT_EXTRA_MAVEN_ARGS=""
 
     rm -rf "${TMP_DIR}"/*
     PRODUCT_BUILD_P2_REPO="${TMP_DIR}/p2-repo-for-product"
@@ -1355,6 +1403,12 @@ function stepProduct () {
     then
       mergeP2Repo "$(getCacheLocation ${SEARCH_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
     fi
+    
+    if ${SCALATEST_PLUGIN}
+    then
+      mergeP2Repo "$(getCacheLocation ${SCALATEST_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
+      PRODUCT_EXTRA_MAVEN_ARGS="-PwithScalaTest"
+    fi
 
     info "Build Product"
 
@@ -1369,6 +1423,7 @@ function stepProduct () {
       -Pconfigure \
       -P${SCALA_PROFILE} \
       -P${ECLIPSE_PLATFORM} \
+      ${PRODUCT_EXTRA_MAVEN_ARGS} \
       -Dversion.tag=${PRODUCT_VERSION_TAG} \
       -Dscala.version=${FULL_SCALA_VERSION} \
       -Drepopath.platform="${REPO_PATH_ECLIPSE}" \
@@ -1379,6 +1434,7 @@ function stepProduct () {
       -Dtycho.localArtifacts=ignore  \
       -P${SCALA_PROFILE} \
       -P${ECLIPSE_PLATFORM} \
+      ${PRODUCT_EXTRA_MAVEN_ARGS} \
       -Dversion.tag=${PRODUCT_VERSION_TAG} \
       -Dscala.version=${FULL_SCALA_VERSION} \
       -Drepopath.scala-ide.ecosystem="" \
@@ -1501,6 +1557,11 @@ fi
 if ${SEARCH_PLUGIN}
 then
   stepPlugin "Scala Search" "search" "SEARCH_PLUGIN" "${SEARCH_PLUGIN_DIR}" "${SEARCH_PLUGIN_GIT_REPO}" "${SEARCH_PLUGIN_GIT_BRANCH}" "${SEARCH_PLUGIN_VERSION_TAG}"
+fi
+
+if ${SCALATEST_PLUGIN}
+then
+  stepScalaTest
 fi
 
 if ${PRODUCT}

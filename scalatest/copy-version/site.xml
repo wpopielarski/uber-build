@@ -1,0 +1,11 @@
+<site>
+    <feature url="features/org.scala-ide.sdt.scalatest.feature_0.0.0.jar" id="org.scala-ide.sdt.scalatest.feature" version="PH_VERSION">
+      <category name="incubation"/>
+    </feature>
+    <feature url="features/org.scala-ide.sdt.scalatest.source.feature_0.0.0.jar" id="org.scala-ide.sdt.scalatest.source.feature" version="PH_VERSION">
+      <category name="source"/>
+    </feature>
+  <category-def name="stable" label="Scala IDE plugins"/>
+  <category-def name="incubation" label="Scala IDE plugins (incubation)"/>
+  <category-def name="source" label="Sources"/>
+</site>
