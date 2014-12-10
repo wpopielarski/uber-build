@@ -1,0 +1,51 @@
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <prerequisites>
+    <maven>3.0</maven>
+  </prerequisites>
+  <groupId>scala-test.uberbuild</groupId>
+  <artifactId>scala-test.copy-version</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <description>Creates a p2 site containing only 1 version de scalatest</description>
+  <packaging>eclipse-update-site</packaging>
+  <properties>
+    <encoding>UTF-8</encoding>
+    <tycho.version>0.21.0</tycho.version>
+  </properties>
+  <repositories>
+    <repository>
+      <id>eclipse.repo</id>
+      <name>Eclipse p2 repository</name>
+      <layout>p2</layout>
+      <url>PH_ECLIPSE_P2</url>
+    </repository>
+    <repository>
+      <id>scalaide.repo</id>
+      <layout>p2</layout>
+      <url>PH_SCALAIDE_P2</url>
+    </repository>
+    <repository>
+      <id>feature.repo</id>
+      <layout>p2</layout>
+      <url>PH_SCALATEST_P2</url>
+    </repository>
+  </repositories>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>tycho-maven-plugin</artifactId>
+        <version>${tycho.version}</version>
+        <extensions>true</extensions>
+      </plugin>
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>tycho-packaging-plugin</artifactId>
+        <version>${tycho.version}</version>
+        <configuration>
+          <archiveSite>true</archiveSite>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
