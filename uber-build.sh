@@ -545,7 +545,7 @@ function stepSetFlags () {
   SEARCH_PLUGIN=false
   SCALATEST_PLUGIN=false
   PUBLISH=false
-# set in during check configuration 
+# set in during check configuration
   USE_SCALA_VERSIONS_PROPERTIES_FILE=false
 
 # Check what to do
@@ -1404,7 +1404,7 @@ function stepProduct () {
     then
       mergeP2Repo "$(getCacheLocation ${SEARCH_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
     fi
-    
+
     if ${SCALATEST_PLUGIN}
     then
       mergeP2Repo "$(getCacheLocation ${SCALATEST_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
@@ -1538,7 +1538,7 @@ stepScala
 stepZinc
 
 if ${IDE_BUILD}
-then 
+then
   stepScalaRefactoring
   stepScalariform
 
