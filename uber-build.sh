@@ -650,7 +650,7 @@ function stepSetFlags () {
 function stepCheckPrerequisites () {
   printStep "Check prerequisites"
 
-  JAVA_VERSION=$(java -version 2>&1 | grep 'java version' | awk -F '"' '{print $2;}')
+  JAVA_VERSION=$(java -version 2>&1 | grep 'version' | awk -F '"' '{print $2;}')
   JAVA_SHORT_VERSION=${JAVA_VERSION:0:3}
   if [ "1.6" != "${JAVA_SHORT_VERSION}" ]
   then
