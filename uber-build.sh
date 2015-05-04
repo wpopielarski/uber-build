@@ -1216,7 +1216,6 @@ function stepScalaIDE () {
       "${MAVEN_ARGS[@]}" \
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
-      -Psbt-new \
       -Dscala.version=${FULL_SCALA_VERSION} \
       -Dversion.tag=${SCALA_IDE_VERSION_TAG} ${LITHIUM_ARGS} \
       -Dsbt.version=${SBT_VERSION} \
