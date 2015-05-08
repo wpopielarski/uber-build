@@ -545,7 +545,7 @@ function stepSetFlags () {
   SEARCH_PLUGIN=false
   SCALATEST_PLUGIN=false
   PUBLISH=false
-# set in during check configuration 
+# set in during check configuration
   USE_SCALA_VERSIONS_PROPERTIES_FILE=false
 
 # Check what to do
@@ -650,7 +650,7 @@ function stepSetFlags () {
 function stepCheckPrerequisites () {
   printStep "Check prerequisites"
 
-  JAVA_VERSION=$(java -version 2>&1 | grep 'java version' | awk -F '"' '{print $2;}')
+  JAVA_VERSION=$(java -version 2>&1 | grep 'version' | awk -F '"' '{print $2;}')
   JAVA_SHORT_VERSION=${JAVA_VERSION:0:3}
   if [ "1.6" != "${JAVA_SHORT_VERSION}" ]
   then
@@ -1216,7 +1216,6 @@ function stepScalaIDE () {
       "${MAVEN_ARGS[@]}" \
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
-      -Psbt-new \
       -Dscala.version=${FULL_SCALA_VERSION} \
       -Dversion.tag=${SCALA_IDE_VERSION_TAG} ${LITHIUM_ARGS} \
       -Dsbt.version=${SBT_VERSION} \
@@ -1404,7 +1403,7 @@ function stepProduct () {
     then
       mergeP2Repo "$(getCacheLocation ${SEARCH_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
     fi
-    
+
     if ${SCALATEST_PLUGIN}
     then
       mergeP2Repo "$(getCacheLocation ${SCALATEST_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
@@ -1538,7 +1537,7 @@ stepScala
 stepZinc
 
 if ${IDE_BUILD}
-then 
+then
   stepScalaRefactoring
   stepScalariform
 
