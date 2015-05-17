@@ -40,8 +40,8 @@ export JOB_NAME
 export NODE_NAME
 export BUILD_URL
 
-# ant options. The Scala build needs a fair amount of memory
-export ANT_OPTS="-Xms512M -Xmx2048M -Xss1M -XX:MaxPermSize=128M"
+# Load configuration variables
+source ./uber-build-config.sh
 
 ####################
 # logging functions
