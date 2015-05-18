@@ -103,6 +103,18 @@ Below follows a list of published releases with the exact command that was used 
 
 (Before this page was created we used to keep these information in a [spreadsheet document on Google Drive](https://docs.google.com/a/typesafe.com/spreadsheet/ccc?key=0Aic2QFD0IxW4dEszQUxQWFROemE5UkFuc3JncjBaQlE#gid=0))
 
+## v4.1.0-rc2
+
+- **With Eclipse 4.4(Luna)**
+
+uber-build.sh at tag 4.1.0-rc2 with [config/release-41x-211-luna.conf](https://github.com/scala-ide/uber-build/blob/4.1.0-rc2/config/release-41x-211-luna.conf)
+
+## v4.1.0-rc1
+
+- **With Eclipse 4.4(Luna)**
+
+uber-build.sh at tag 4.1.0-rc1 with [config/release-41x-211-luna.conf](https://github.com/scala-ide/uber-build/blob/4.1.0-rc1/config/release-41x-211-luna.conf)
+
 ## v4.0.0-vfinal on Scala 2.11.6
 
 - **With Scala 2.11.4 / Eclipse 4.3(Kepler)**
@@ -126,7 +138,7 @@ uber-build.sh at tag 4.0.0-vfinal with [config/release-40x-211-luna.conf](https:
 
 ## v4.0.0-rc4
 
-- **With Scala 2.11.4 / Eclipse 4.3(Kepler)** 
+- **With Scala 2.11.4 / Eclipse 4.3(Kepler)**
 
 uber-build.sh at tag 4.0.0-rc4 with [config/release-40x-211.conf](https://github.com/scala-ide/uber-build/blob/4.0.0-rc4/config/release-40x-211.conf)
 
@@ -757,5 +769,5 @@ These were "special releases" for Scala 2.10.2-RC1 and Scala 2.11.0-M3
     TYPESAFE_IDE_VERSION_TAG=3.0.0-rc3 \
     KEYSTORE_GIT_REPO=$1 \
     KEYSTORE_PASS=$2 \
-    PUBLISH=dev 
+    PUBLISH=dev
 ```
