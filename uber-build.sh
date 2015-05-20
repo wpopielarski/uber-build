@@ -41,7 +41,8 @@ export NODE_NAME
 export BUILD_URL
 
 # Load configuration variables
-source ./uber-build-config.sh
+uberBuildDir="$(dirname "$0")"
+source $uberBuildDir/uber-build-config.sh
 
 ####################
 # logging functions
