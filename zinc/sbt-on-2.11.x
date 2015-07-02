@@ -1,5 +1,5 @@
 # This is the dbuild configuration to build zinc and its dependencies on Scala 2.11.x
-#  It is run through the Scala IDE parametrized job: https://jenkins.scala-ide.org:8496/jenkins/job/parameterized-zinc/ 
+#  It is run through the Scala IDE parametrized job: https://jenkins.scala-ide.org:8496/jenkins/job/parameterized-zinc/
 #  and other uber-build runs.
 
 # There should not be any need to change this file. Except to change the base repositories, most parameters can be modified
@@ -49,7 +49,7 @@
         extra.parts: {
           cross-version: standard
         }
-        # TODO - We want the scala version used to be 
+        # TODO - We want the scala version used to be
         #        given to use from the IDE build, if we can.
         extra.parts.projects: [
           {
@@ -67,8 +67,7 @@
             system: "ivy",
             set-version: ${vars.scala-version}
             uri:    "ivy:org.scala-lang#scala-compiler;"${vars.maven.version.number}
-          },
-          {
+          }, {
             name:  "scala-xml",
             system: "ivy",
             uri:    "ivy:org.scala-lang.modules#scala-xml_"${vars.scala.binary.version}";"${vars.scala-xml.version.number}
@@ -80,12 +79,10 @@
             set-version: ${vars.scala-parser-combinators.version.number} // required by sbinary?
           }
         ]
-      },
-      {
+      }, {
         name: scalacheck
         uri: "https://github.com/rickynils/scalacheck.git#"${vars.scalacheck-tag}
-      },
-      {
+      }, {
         name:   "sbinary",
         extra.sbt-version: "0.13.5",
         uri:    "git://github.com/harrah/sbinary.git#"${vars.sbinary-tag}
@@ -94,14 +91,16 @@
         uri:    "git://github.com/sbt/sbt.git#"${vars.sbt-tag}
         extra: {
           sbt-version: ${vars.sbt-build-sbt-version},
-          projects: ["compiler-interface",
-                     "classpath","logging","io","control","classfile",
-                     "process","relation","interface","persist","api",
-                     "compiler-integration","incremental-compiler","compile","launcher-interface"
-                    ],
+          projects: [
+            "compileInterfaceProj",
+            "classpathProj","logProj","ioProj","controlProj","classfileProj",
+            "processProj","relationProj","interfaceProj","compilePersistProj","apiProj",
+            "compilerIntegrationProj","compileIncrementalProj","compilerProj","launchInterfaceProj"
+          ],
           run-tests: false,
-          commands: [ "set every Util.includeTestDependencies := false" // Without this, we have to build specs2
-                    ]
+          commands: [
+            "set every includeTestDependencies := false" // Without this, we have to build specs2
+          ]
         }
       }, {
         name:   "sbt-republish",
