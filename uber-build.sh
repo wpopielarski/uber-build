@@ -452,7 +452,7 @@ function stepCheckArguments () {
 ####################
 
 function stepLoadConfig () {
-  printStep "Load config"
+  printStep "Load config: ${CONFIG_FILE}"
 
 # set the working folders
   CURRENT_DIR=$(pwd)
