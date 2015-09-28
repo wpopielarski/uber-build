@@ -103,6 +103,12 @@ Below follows a list of published releases with the exact command that was used 
 
 (Before this page was created we used to keep these information in a [spreadsheet document on Google Drive](https://docs.google.com/a/typesafe.com/spreadsheet/ccc?key=0Aic2QFD0IxW4dEszQUxQWFROemE5UkFuc3JncjBaQlE#gid=0))
 
+## v4.2.0-vfinal
+
+- **With Eclipse 4.4(Luna)**
+
+uber-build.sh at tag 4.2.0-vfinal with [config/release-41x-211-luna.conf](https://github.com/scala-ide/uber-build/blob/4.2.0-vfinal/config/release-42x-211-luna.conf)
+
 ## v4.2.0-rc3
 
 - **With Eclipse 4.4(Luna)**
