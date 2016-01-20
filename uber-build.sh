@@ -1219,6 +1219,7 @@ function stepScalaIDE () {
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
       -Dscala.version=${FULL_SCALA_VERSION} \
+      -Dscala.minor.version=${FULL_SCALA_VERSION} \
       -Dversion.tag=${SCALA_IDE_VERSION_TAG} ${LITHIUM_ARGS} \
       -Dsbt.version=${SBT_VERSION} \
       -Dsbt.ide.version=${FULL_SBT_VERSION} \
