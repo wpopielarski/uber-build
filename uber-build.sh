@@ -655,9 +655,9 @@ function stepCheckPrerequisites () {
 
   JAVA_VERSION=$(java -version 2>&1 | grep 'version' | awk -F '"' '{print $2;}')
   JAVA_SHORT_VERSION=${JAVA_VERSION:0:3}
-  if [ $(bc <<< "${JAVA_SHORT_VERSION} < 1.8") -eq 1 ]
+  if [ "1.6" != "${JAVA_SHORT_VERSION}" ]
   then
-    error "Please run the script with at least Java 1.8. Current version is: ${JAVA_VERSION}."
+    error "Please run the script with Java 1.6. Current version is: ${JAVA_VERSION}."
   fi
 
 # ant is need to rebuild Scala
