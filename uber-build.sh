@@ -1133,7 +1133,7 @@ function stepScalaRefactoring () {
     $SBT_RUNNER \
       'set publishTo := Some(Resolver.file("Local M2 repo", file("'$LOCAL_M2_REPO'")))' \
       'set scalaVersion := "'$FULL_SCALA_VERSION'"' \
-      'set resolvers += Resolver.file("Scala artifacts", file("'$IDE_M2_REPO'"))' \
+      'set resolvers += "Scala artifacts" at "'$IDE_M2_REPO'"' \
       publish
 
     storeCache ${SCALA_REFACTORING_P2_ID} "$LOCAL_M2_REPO"
