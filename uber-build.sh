@@ -478,6 +478,8 @@ function stepLoadConfig () {
     SCALA_VERSION="${ARG_SCALA_VERSION}"
   fi
 
+# needed to ensure that SBT only relies on local directories
+  export JAVA_TOOL_OPTIONS="-Dsbt.ivy.home=$LOCAL_IVY_REPO -Dsbt.dir=$LOCAL_IVY_REPO/global -Dsbt.global.base=$LOCAL_IVY_REPO/global"
 }
 
 ################
@@ -1128,14 +1130,12 @@ function stepScalaRefactoring () {
   then
     info "Building Scala Refactoring"
 
-    mvn "${MAVEN_ARGS[@]}" \
-      -P ${SCALA_PROFILE} \
-      -Dscala.version=${FULL_SCALA_VERSION} \
-      -Dgit.hash=${SCALA_REFACTORING_UID} \
-      clean \
-      verify
+    $SBT_RUNNER \
+      'set publishTo := Some(Resolver.file("file", new File("'$LOCAL_M2_REPO'")))' \
+      'set scalaVersion := "'$FULL_SCALA_VERSION'"' \
+      publish
 
-    storeCache ${SCALA_REFACTORING_P2_ID} "${SCALA_REFACTORING_DIR}/org.scala-refactoring.update-site/target/site"
+    storeCache ${SCALA_REFACTORING_P2_ID} "$LOCAL_M2_REPO"
   fi
 }
 
