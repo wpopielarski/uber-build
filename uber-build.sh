@@ -478,6 +478,8 @@ function stepLoadConfig () {
     SCALA_VERSION="${ARG_SCALA_VERSION}"
   fi
 
+# needed to ensure that SBT only relies on local directories
+  export JAVA_TOOL_OPTIONS="-Dsbt.ivy.home=$LOCAL_IVY_REPO -Dsbt.dir=$LOCAL_IVY_REPO/global -Dsbt.global.base=$LOCAL_IVY_REPO/global"
 }
 
 ################
@@ -653,9 +655,9 @@ function stepCheckPrerequisites () {
 
   JAVA_VERSION=$(java -version 2>&1 | grep 'version' | awk -F '"' '{print $2;}')
   JAVA_SHORT_VERSION=${JAVA_VERSION:0:3}
-  if [ "1.6" != "${JAVA_SHORT_VERSION}" ]
+  if [ $(bc <<< "${JAVA_SHORT_VERSION} < 1.8") -eq 1 ]
   then
-    error "Please run the script with Java 1.6. Current version is: ${JAVA_VERSION}."
+    error "Please run the script with at least Java 1.8. Current version is: ${JAVA_VERSION}."
   fi
 
 # ant is need to rebuild Scala
@@ -1128,14 +1130,12 @@ function stepScalaRefactoring () {
   then
     info "Building Scala Refactoring"
 
-    mvn "${MAVEN_ARGS[@]}" \
-      -P ${SCALA_PROFILE} \
-      -Dscala.version=${FULL_SCALA_VERSION} \
-      -Dgit.hash=${SCALA_REFACTORING_UID} \
-      clean \
-      verify
+    $SBT_RUNNER \
+      'set publishTo := Some(Resolver.file("file", new File("'$LOCAL_M2_REPO'")))' \
+      'set scalaVersion := "'$FULL_SCALA_VERSION'"' \
+      publish
 
-    storeCache ${SCALA_REFACTORING_P2_ID} "${SCALA_REFACTORING_DIR}/org.scala-refactoring.update-site/target/site"
+    storeCache ${SCALA_REFACTORING_P2_ID} "$LOCAL_M2_REPO"
   fi
 }
 
