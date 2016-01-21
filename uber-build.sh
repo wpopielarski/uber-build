@@ -1130,6 +1130,10 @@ function stepScalaRefactoring () {
   then
     info "Building Scala Refactoring"
 
+    # We do not want to add the scoverage plugin to the scala-refactoring build during CI integration,
+    # since this plugin depends on scalac.
+    export OMIT_SCOVERAGE_PLUGIN="true"
+
     $SBT_RUNNER \
       'set publishTo := Some(Resolver.file("Local M2 repo", file("'$LOCAL_M2_REPO'")))' \
       'set scalaVersion := "'$FULL_SCALA_VERSION'"' \
