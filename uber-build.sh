@@ -1472,16 +1472,20 @@ function publishPlugin () {
   ZIP_NAME=site-${TIMESTAMP}.zip
   zip -rq ${ZIP_NAME} site
 
-  PLUGIN_UPLOAD_DIR="scala-ide.dreamhosters.com/plugins/$2/releases/${ECOSYSTEM_ECLIPSE_VERSION}/${SHORT_SCALA_VERSION}.x"
-  scp ${ZIP_NAME} ${SSH_ACCOUNT}:${PLUGIN_UPLOAD_DIR}
-  ssh ${SSH_ACCOUNT} "cd ${PLUGIN_UPLOAD_DIR}; rm -rf site; unzip -q ${ZIP_NAME}"
+  PLUGIN_UPLOAD_DIR="$S3HOST/scalaide/plugins/$2/releases/${ECOSYSTEM_ECLIPSE_VERSION}/${SHORT_SCALA_VERSION}.x"
+  source "$AWS/activate"
 
+  # Remove old site directory
+  aws s3 rm --recursive $PLUGIN_UPLOAD_DIR/site
+  # Upload data as zip archive to keep a backup
+  aws s3 sync $ZIP_NAME $PLUGIN_UPLOAD_DIR
+  # Upload data into site directory
+  aws s3 sync site $PLUGIN_UPLOAD_DIR
+  deactivate
 }
 
 function stepPublish () {
   printStep "Publish"
-
-  SSH_ACCOUNT="scalaide@scala-ide.dreamhosters.com"
 
   info "generate base ecosystem repo"
 
@@ -1503,9 +1507,16 @@ function stepPublish () {
   ZIP_NAME=base-${TIMESTAMP}.zip
   zip -qr ${ZIP_NAME} base
 
-  ECOSYSTEM_UPLOAD_DIR="scala-ide.dreamhosters.com/sdk/next/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
-  scp ${ZIP_NAME} ${SSH_ACCOUNT}:${ECOSYSTEM_UPLOAD_DIR}
-  ssh ${SSH_ACCOUNT} "cd ${ECOSYSTEM_UPLOAD_DIR}; rm -rf base; unzip -q ${ZIP_NAME}"
+  ECOSYSTEM_UPLOAD_DIR="$S3HOST/scalaide/sdk/next/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
+  source "$AWS/activate"
+
+  # Remove old base directory
+  aws s3 rm --recursive $PLUGIN_UPLOAD_DIR/base
+  # Upload data as zip archive to keep a backup
+  aws s3 sync $ZIP_NAME $PLUGIN_UPLOAD_DIR
+  # Upload data into base directory
+  aws s3 sync base $PLUGIN_UPLOAD_DIR
+  deactivate
 
   if ${WORKSHEET_PLUGIN}
   then
