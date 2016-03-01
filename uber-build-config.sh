@@ -18,3 +18,6 @@ MAVEN_OPTS="-XX:MaxPermSize=128M"
 # Ant options. The Scala build needs a fair amount of memory
 ANT_OPTS="-Xms512M -Xmx2048M -Xss1M -XX:MaxPermSize=128M"
 
+AWS_DIR="$(pwd)/target/aws-virtualenv"
+AWS="$AWS_DIR/bin"
+S3HOST="s3://downloads.typesafe.com"
