@@ -3,16 +3,16 @@
 # This file contains several configuration variables that may be used by uber-build.
 
 # Path to the executable of the eclipse installation that should be used to build the Scala IDE product.
-ECLIPSE=
+ECLIPSE="$(pwd)/target/eclipse/eclipse"
 
 # The password for the keystore that is needed to sign the Scala IDE product.
-KEYSTORE_PASS=
+KEYSTORE_PASS="$(cat $HOME/.scalaide-keystore-pass)"
 
 # Points to the repo that contains the private keystore values. This repo is therefore also private.
 KEYSTORE_GIT_REPO="git@github.com:typesafehub/typesafe-keystore.git"
 
 # If debug information should be printed while uber-build is running, this variable need to be set to an arbitrary value.
-DEBUG=
+DEBUG=1
 # MaxPermSize needs to be set manually to a large value in Java6
 MAVEN_OPTS="-XX:MaxPermSize=128M"
 # Ant options. The Scala build needs a fair amount of memory
