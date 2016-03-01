@@ -1541,6 +1541,9 @@ function stepPublish () {
 ##############
 ##############
 
+# Check if aws tools are installed
+[ ! -e "$AWS" ] && error "aws tools could not be found. Install them first!"
+
 stepCheckArguments $*
 
 stepLoadConfig
