@@ -6,7 +6,11 @@
 ECLIPSE="$(pwd)/target/eclipse/eclipse"
 
 # The password for the keystore that is needed to sign the Scala IDE product.
-KEYSTORE_PASS="$(cat $HOME/.scalaide-keystore-pass)"
+if [[ -e "$HOME/.scalaide-keystore-pass" ]]; then
+  KEYSTORE_PASS="$(cat $HOME/.scalaide-keystore-pass)"
+else
+  KEYSTORE_PASS=""
+fi
 
 # Points to the repo that contains the private keystore values. This repo is therefore also private.
 KEYSTORE_GIT_REPO="git@github.com:typesafehub/typesafe-keystore.git"
