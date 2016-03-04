@@ -1476,11 +1476,11 @@ function publishPlugin () {
   source "$AWS/activate"
 
   # Remove old site directory
-  aws s3 rm --recursive $PLUGIN_UPLOAD_DIR/site
+  aws s3 rm --recursive "$PLUGIN_UPLOAD_DIR/site"
   # Upload data as zip archive to keep a backup
-  aws s3 sync $ZIP_NAME $PLUGIN_UPLOAD_DIR
+  aws s3 sync "$ZIP_NAME" "$PLUGIN_UPLOAD_DIR"
   # Upload data into site directory
-  aws s3 sync site $PLUGIN_UPLOAD_DIR
+  aws s3 sync site "$PLUGIN_UPLOAD_DIR/site"
   deactivate
 }
 
@@ -1507,15 +1507,15 @@ function stepPublish () {
   ZIP_NAME=base-${TIMESTAMP}.zip
   zip -qr ${ZIP_NAME} base
 
-  ECOSYSTEM_UPLOAD_DIR="$S3HOST/scalaide/sdk/next/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
+  ECOSYSTEM_UPLOAD_DIR="$S3HOST/scalaide/sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
   source "$AWS/activate"
 
   # Remove old base directory
-  aws s3 rm --recursive $PLUGIN_UPLOAD_DIR/base
+  aws s3 rm --recursive "$PLUGIN_UPLOAD_DIR/base"
   # Upload data as zip archive to keep a backup
-  aws s3 sync $ZIP_NAME $PLUGIN_UPLOAD_DIR
+  aws s3 sync "$ZIP_NAME" "$PLUGIN_UPLOAD_DIR"
   # Upload data into base directory
-  aws s3 sync base $PLUGIN_UPLOAD_DIR
+  aws s3 sync base "$PLUGIN_UPLOAD_DIR/base"
   deactivate
 
   if ${WORKSHEET_PLUGIN}
