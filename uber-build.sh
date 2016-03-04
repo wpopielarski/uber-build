@@ -1459,6 +1459,25 @@ function stepProduct () {
 # Publish
 ##########
 
+# $1 - URL to the update site that should be added to the composite site
+function addToCompositeSite () {
+  info "add to composite site: $1"
+
+  ECLIPSE_DIR="$(dirname "$ECLIPSE")"
+  COMP_REPO="$(pwd)/comp-repo.sh"
+  REPO_DIR="$(pwd)/target/composite-site"
+  REPO_NAME="Scala IDE composite update site"
+
+  $COMP_REPO "$REPO_DIR" \
+    --eclipse "$ECLIPSE_DIR" \
+    --name "$REPO_NAME" \
+    add "$1"
+}
+
+function publishCompositeSite () {
+  info "uploading composite site"
+}
+
 # $1 - pretty name
 # $2 - logic name
 # $3 - var prefix
@@ -1469,19 +1488,23 @@ function publishPlugin () {
   rm -rf *
   P2_ID_VAR_NAME=$3_P2_ID
   cp -r "$(getCacheLocation ${!P2_ID_VAR_NAME})" site
-  ZIP_NAME=site-${TIMESTAMP}.zip
+  RELEASE_NAME="site-$TIMESTAMP"
+  ZIP_NAME="${RELEASE_NAME}.zip"
   zip -rq ${ZIP_NAME} site
 
-  PLUGIN_UPLOAD_DIR="$S3HOST/scalaide/plugins/$2/releases/${ECOSYSTEM_ECLIPSE_VERSION}/${SHORT_SCALA_VERSION}.x"
+  PUBLIC_URL="plugins/$2/releases/${ECOSYSTEM_ECLIPSE_VERSION}/${SHORT_SCALA_VERSION}.x"
+  UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
   source "$AWS/activate"
 
   # Remove old site directory
-  aws s3 rm --recursive "$PLUGIN_UPLOAD_DIR/site"
+  #aws s3 rm --recursive "$UPLOAD_DIR/$RELEASE_NAME"
   # Upload data as zip archive to keep a backup
-  aws s3 sync "$ZIP_NAME" "$PLUGIN_UPLOAD_DIR"
+  aws s3 sync "$ZIP_NAME" "$UPLOAD_DIR"
   # Upload data into site directory
-  aws s3 sync site "$PLUGIN_UPLOAD_DIR/site"
+  aws s3 sync site "$UPLOAD_DIR/$RELEASE_NAME"
   deactivate
+
+  addToCompositeSite "$SCALA_IDE_URL/$PUBLIC_URL/$RELEASE_NAME"
 }
 
 function stepPublish () {
@@ -1504,19 +1527,23 @@ function stepPublish () {
 
   cd "${ECOSYSTEM_P2_REPO}"
 
-  ZIP_NAME=base-${TIMESTAMP}.zip
+  RELEASE_NAME="base-$TIMESTAMP"
+  ZIP_NAME="${RELEASE_NAME}.zip"
   zip -qr ${ZIP_NAME} base
 
-  ECOSYSTEM_UPLOAD_DIR="$S3HOST/scalaide/sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
+  PUBLIC_URL="sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
+  UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
   source "$AWS/activate"
 
   # Remove old base directory
-  aws s3 rm --recursive "$PLUGIN_UPLOAD_DIR/base"
+  #aws s3 rm --recursive "$UPLOAD_DIR/$RELEASE_NAME"
   # Upload data as zip archive to keep a backup
-  aws s3 sync "$ZIP_NAME" "$PLUGIN_UPLOAD_DIR"
+  aws s3 sync "$ZIP_NAME" "$UPLOAD_DIR"
   # Upload data into base directory
-  aws s3 sync base "$PLUGIN_UPLOAD_DIR/base"
+  aws s3 sync base "$UPLOAD_DIR/$RELEASE_NAME"
   deactivate
+
+  addToCompositeSite "$SCALA_IDE_URL/$PUBLIC_URL/$RELEASE_NAME"
 
   if ${WORKSHEET_PLUGIN}
   then
@@ -1533,6 +1560,13 @@ function stepPublish () {
     publishPlugin "Search" "scala-search" "SEARCH_PLUGIN"
   fi
 
+  # We don't publish Scalatest by ourselves but we want to add it to the composite site
+  if ${SCALATEST_PLUGIN}
+  then
+    addToCompositeSite "$SCALATEST_PLUGIN_P2_REPO"
+  fi
+
+  publishCompositeSite
 }
 
 ##############
