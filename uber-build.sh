@@ -1503,7 +1503,25 @@ function publishCompositeSite () {
   aws s3 sync "$COMPOSITE_REPO_DIR" "$UPLOAD_DIR/$RELEASE_NAME"
   deactivate
 
+  FILE_NAME="$UBER_BUILD_DIR/target/release-from-staging-area.sh"
+  cat > "$FILE_NAME" <<EOM
+#!/bin/bash
+# This script releases the last published composite site from the staging area
+
+source "$AWS/activate"
+# Remove previous composite site
+aws s3 \rm --recursive "$UPLOAD_DIR/site"
+# Copy new composite site to default URL
+aws s3 \cp --recursive "$UPLOAD_DIR/$RELEASE_NAME" "$UPLOAD_DIR/site"
+deactivate
+
+echo "Releasing from staging area was succesful"
+EOM
+  # Make file executable
+  chmod +x "$FILE_NAME"
+
   info "Composite update site published to $SCALA_IDE_URL/$PUBLIC_URL/$RELEASE_NAME"
+  info "Once you decided that the composite site shall be released from the staging area, run the generated file '$FILE_NAME'"
 }
 
 # $1 - pretty name
