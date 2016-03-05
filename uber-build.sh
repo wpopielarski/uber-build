@@ -1534,11 +1534,6 @@ function stepPublish () {
 
   cp -r "$(getCacheLocation ${SCALA_IDE_P2_ID})" "${ECOSYSTEM_P2_REPO}/base"
 
-  if ${PRODUCT}
-  then
-    mergeP2Repo "$(getCacheLocation ${PRODUCT_P2_ID})" "${ECOSYSTEM_P2_REPO}/base"
-  fi
-
   info "uploading base ecosystem"
 
   cd "${ECOSYSTEM_P2_REPO}"
