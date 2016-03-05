@@ -1465,10 +1465,10 @@ function addToCompositeSite () {
 
   ECLIPSE_DIR="$(dirname "$ECLIPSE")"
   COMP_REPO="$(pwd)/comp-repo.sh"
-  REPO_DIR="$(pwd)/target/composite-site"
+  COMPOSITE_REPO_DIR="$(pwd)/target/composite-site"
   REPO_NAME="Scala IDE composite update site"
 
-  $COMP_REPO "$REPO_DIR" \
+  $COMP_REPO "$COMPOSITE_REPO_DIR" \
     --eclipse "$ECLIPSE_DIR" \
     --name "$REPO_NAME" \
     add "$1"
@@ -1476,6 +1476,15 @@ function addToCompositeSite () {
 
 function publishCompositeSite () {
   info "uploading composite site"
+
+  RELEASE_NAME="site-$TIMESTAMP"
+  COMPOSITE_REPO_DIR="$(pwd)/target/composite-site"
+  UPLOAD_DIR="$S3HOST/scalaide/sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
+  source "$AWS/activate"
+
+  # Upload data into base directory
+  aws s3 sync "$COMPOSITE_REPO_DIR" "$UPLOAD_DIR/$RELEASE_NAME"
+  deactivate
 }
 
 # $1 - pretty name
@@ -1496,10 +1505,8 @@ function publishPlugin () {
   UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
   source "$AWS/activate"
 
-  # Remove old site directory
-  #aws s3 rm --recursive "$UPLOAD_DIR/$RELEASE_NAME"
   # Upload data as zip archive to keep a backup
-  aws s3 sync "$ZIP_NAME" "$UPLOAD_DIR"
+  aws s3 \cp "$ZIP_NAME" "$UPLOAD_DIR/"
   # Upload data into site directory
   aws s3 sync site "$UPLOAD_DIR/$RELEASE_NAME"
   deactivate
@@ -1535,10 +1542,8 @@ function stepPublish () {
   UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
   source "$AWS/activate"
 
-  # Remove old base directory
-  #aws s3 rm --recursive "$UPLOAD_DIR/$RELEASE_NAME"
   # Upload data as zip archive to keep a backup
-  aws s3 sync "$ZIP_NAME" "$UPLOAD_DIR"
+  aws s3 \cp "$ZIP_NAME" "$UPLOAD_DIR/"
   # Upload data into base directory
   aws s3 sync base "$UPLOAD_DIR/$RELEASE_NAME"
   deactivate
