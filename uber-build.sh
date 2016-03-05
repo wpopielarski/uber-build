@@ -1464,8 +1464,8 @@ function addToCompositeSite () {
   info "add to composite site: $1"
 
   ECLIPSE_DIR="$(dirname "$ECLIPSE")"
-  COMP_REPO="$(pwd)/comp-repo.sh"
-  COMPOSITE_REPO_DIR="$(pwd)/target/composite-site"
+  COMP_REPO="$(dirname "$0")/comp-repo.sh"
+  COMPOSITE_REPO_DIR="$(dirname "$0")/target/composite-site"
   REPO_NAME="Scala IDE composite update site"
 
   $COMP_REPO "$COMPOSITE_REPO_DIR" \
@@ -1478,7 +1478,7 @@ function publishCompositeSite () {
   info "uploading composite site"
 
   RELEASE_NAME="site-$TIMESTAMP"
-  COMPOSITE_REPO_DIR="$(pwd)/target/composite-site"
+  COMPOSITE_REPO_DIR="$(dirname "$0")/target/composite-site"
   UPLOAD_DIR="$S3HOST/scalaide/sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
   source "$AWS/activate"
 
