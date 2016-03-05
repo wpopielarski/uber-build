@@ -712,6 +712,15 @@ function stepCheckPrerequisites () {
   then
     error "'mvn' is required on PATH for any build."
   fi
+
+  # Check if aws tools are installed
+  if ${PUBLISH}
+  then
+    if [ ! -e "$AWS" ]
+    then
+      error "AWS tools could not be found but are needed for the publish step. Install them first by running the 'install-aws.sh' script!"
+    fi
+  fi
 }
 
 ######################
