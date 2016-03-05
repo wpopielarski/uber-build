@@ -1468,6 +1468,13 @@ function stepProduct () {
 # Publish
 ##########
 
+function prepareCompositeSite() {
+  COMPOSITE_REPO_DIR="$UBER_BUILD_DIR/target/composite-site"
+
+  # Remove an existing composite-site
+  rm -rf "$COMPOSITE_REPO_DIR"
+}
+
 # $1 - URL to the update site that should be added to the composite site
 function addToCompositeSite () {
   info "add to composite site: $1"
@@ -1488,12 +1495,15 @@ function publishCompositeSite () {
 
   RELEASE_NAME="site-$TIMESTAMP"
   COMPOSITE_REPO_DIR="$UBER_BUILD_DIR/target/composite-site"
-  UPLOAD_DIR="$S3HOST/scalaide/sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
-  source "$AWS/activate"
+  PUBLIC_URL="sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
+  UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
 
+  source "$AWS/activate"
   # Upload data into base directory
   aws s3 sync "$COMPOSITE_REPO_DIR" "$UPLOAD_DIR/$RELEASE_NAME"
   deactivate
+
+  info "Composite update site published to $SCALA_IDE_URL/$PUBLIC_URL/$RELEASE_NAME"
 }
 
 # $1 - pretty name
@@ -1512,8 +1522,8 @@ function publishPlugin () {
 
   PUBLIC_URL="plugins/$2/releases/${ECOSYSTEM_ECLIPSE_VERSION}/${SHORT_SCALA_VERSION}.x"
   UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
-  source "$AWS/activate"
 
+  source "$AWS/activate"
   # Upload data as zip archive to keep a backup
   aws s3 \cp "$ZIP_NAME" "$UPLOAD_DIR/"
   # Upload data into site directory
@@ -1544,14 +1554,15 @@ function stepPublish () {
 
   PUBLIC_URL="sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
   UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
-  source "$AWS/activate"
 
+  source "$AWS/activate"
   # Upload data as zip archive to keep a backup
   aws s3 \cp "$ZIP_NAME" "$UPLOAD_DIR/"
   # Upload data into base directory
   aws s3 sync base "$UPLOAD_DIR/$RELEASE_NAME"
   deactivate
 
+  prepareCompositeSite
   addToCompositeSite "$SCALA_IDE_URL/$PUBLIC_URL/$RELEASE_NAME"
 
   if ${WORKSHEET_PLUGIN}
