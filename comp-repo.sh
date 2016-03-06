@@ -1,6 +1,8 @@
 #!/bin/bash
 #
 # Tool to maintain p2 composite repositories
+#
+# Copied from http://eclipsesource.com/blogs/2012/06/11/creating-p2-composite-repositories-on-the-command-line/
 
 USAGE="Usage:
   `basename "$0"` <repo-dir> [options] operation, operation ...
