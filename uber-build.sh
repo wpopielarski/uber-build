@@ -41,7 +41,7 @@ export NODE_NAME
 export BUILD_URL
 
 # Load configuration variables
-UBER_BUILD_DIR="$(pwd)"
+UBER_BUILD_DIR="$(dirname "$0")"
 source $UBER_BUILD_DIR/uber-build-config.sh
 
 ####################
