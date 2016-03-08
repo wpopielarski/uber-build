@@ -1490,17 +1490,21 @@ function addToCompositeSite () {
     add "$1"
 }
 
+# $1 - UPLOAD_DIR
+# $2 - UPLOAD_URL
+# $3 - RELEASE_NAME
 function publishCompositeSite () {
   info "uploading composite site"
 
-  RELEASE_NAME="site-$TIMESTAMP"
+  COMPOSITE_SITE_NAME="site-$TIMESTAMP"
   COMPOSITE_REPO_DIR="$UBER_BUILD_DIR/target/composite-site"
-  PUBLIC_URL="sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
-  UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
+  UPLOAD_DIR="$1"
+  UPLOAD_URL="$2"
+  RELEASE_NAME="$3"
 
   source "$AWS/activate"
   # Upload data into base directory
-  aws s3 sync "$COMPOSITE_REPO_DIR" "$UPLOAD_DIR/$RELEASE_NAME"
+  aws s3 sync "$COMPOSITE_REPO_DIR" "$UPLOAD_DIR/$COMPOSITE_SITE_NAME"
   deactivate
 
   FILE_NAME="$UBER_BUILD_DIR/target/release-from-staging-area.sh"
@@ -1510,9 +1514,15 @@ function publishCompositeSite () {
 
 source "$AWS/activate"
 # Remove previous composite site
-aws s3 \rm --recursive "$UPLOAD_DIR/site"
+aws s3 rm --recursive "$UPLOAD_DIR/site"
 # Copy new composite site to default URL
-aws s3 \cp --recursive "$UPLOAD_DIR/$RELEASE_NAME" "$UPLOAD_DIR/site"
+aws s3 cp --recursive "$UPLOAD_DIR/$COMPOSITE_SITE_NAME" "$UPLOAD_DIR/site"
+
+# Remove previous update-site.zip
+aws s3 rm "$UPLOAD_DIR/update-site.zip"
+# Copy zip file to update-site.zip
+aws s3 cp "$UPLOAD_DIR/${RELEASE_NAME}.zip" "$UPLOAD_DIR/update-site.zip"
+
 deactivate
 
 echo "Releasing from staging area was succesful"
@@ -1520,7 +1530,7 @@ EOM
   # Make file executable
   chmod +x "$FILE_NAME"
 
-  info "Composite update site published to $SCALA_IDE_URL/$PUBLIC_URL/$RELEASE_NAME"
+  info "Composite update site published to $UPLOAD_URL/$COMPOSITE_SITE_NAME"
   info "Once you decided that the composite site shall be released from the staging area, run the generated file '$FILE_NAME'"
 }
 
@@ -1568,14 +1578,14 @@ function stepPublish () {
 
   RELEASE_NAME="base-$TIMESTAMP"
   ZIP_NAME="${RELEASE_NAME}.zip"
-  zip -qr ${ZIP_NAME} base
+  zip -qr "$ZIP_NAME" base
 
   PUBLIC_URL="sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
   UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
 
   source "$AWS/activate"
   # Upload data as zip archive to keep a backup
-  aws s3 \cp "$ZIP_NAME" "$UPLOAD_DIR/"
+  aws s3 cp "$ZIP_NAME" "$UPLOAD_DIR/"
   # Upload data into base directory
   aws s3 sync base "$UPLOAD_DIR/$RELEASE_NAME"
   deactivate
@@ -1604,7 +1614,7 @@ function stepPublish () {
     addToCompositeSite "$SCALATEST_PLUGIN_P2_REPO"
   fi
 
-  publishCompositeSite
+  publishCompositeSite "$UPLOAD_DIR" "$SCALA_IDE_URL/$PUBLIC_URL" "$RELEASE_NAME"
 }
 
 ##############
