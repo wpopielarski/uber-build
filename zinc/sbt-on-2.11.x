@@ -106,7 +106,7 @@
         name:   "sbt-republish",
         uri:    "http://github.com/typesafehub/sbt-republish.git#"${vars.sbt-republish-tag},
         set-version: ${vars.sbt-version},
-        extra.sbt-version: "0.13.9"
+        extra.sbt-version: "0.13.11"
       }
     ],
     cross-version:standard,
