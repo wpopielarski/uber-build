@@ -1469,7 +1469,7 @@ function stepProduct () {
 ##########
 
 function prepareCompositeSite() {
-  COMPOSITE_REPO_DIR="$UBER_BUILD_DIR/target/composite-site"
+  local COMPOSITE_REPO_DIR="$UBER_BUILD_DIR/target/composite-site"
 
   # Remove an existing composite-site
   rm -rf "$COMPOSITE_REPO_DIR"
@@ -1479,10 +1479,10 @@ function prepareCompositeSite() {
 function addToCompositeSite () {
   info "add to composite site: $1"
 
-  ECLIPSE_DIR="$(dirname "$ECLIPSE")"
-  COMP_REPO="$UBER_BUILD_DIR/comp-repo.sh"
-  COMPOSITE_REPO_DIR="$UBER_BUILD_DIR/target/composite-site"
-  REPO_NAME="Scala IDE composite update site"
+  local ECLIPSE_DIR="$(dirname "$ECLIPSE")"
+  local COMP_REPO="$UBER_BUILD_DIR/comp-repo.sh"
+  local COMPOSITE_REPO_DIR="$UBER_BUILD_DIR/target/composite-site"
+  local REPO_NAME="Scala IDE composite update site"
 
   $COMP_REPO "$COMPOSITE_REPO_DIR" \
     --eclipse "$ECLIPSE_DIR" \
@@ -1496,18 +1496,18 @@ function addToCompositeSite () {
 function publishCompositeSite () {
   info "uploading composite site"
 
-  COMPOSITE_SITE_NAME="site-$TIMESTAMP"
-  COMPOSITE_REPO_DIR="$UBER_BUILD_DIR/target/composite-site"
-  UPLOAD_DIR="$1"
-  UPLOAD_URL="$2"
-  RELEASE_NAME="$3"
+  local COMPOSITE_SITE_NAME="site-$TIMESTAMP"
+  local COMPOSITE_REPO_DIR="$UBER_BUILD_DIR/target/composite-site"
+  local UPLOAD_DIR="$1"
+  local UPLOAD_URL="$2"
+  local RELEASE_NAME="$3"
 
   source "$AWS/activate"
   # Upload data into base directory
   aws s3 sync "$COMPOSITE_REPO_DIR" "$UPLOAD_DIR/$COMPOSITE_SITE_NAME"
   deactivate
 
-  FILE_NAME="$UBER_BUILD_DIR/target/release-from-staging-area.sh"
+  local FILE_NAME="$UBER_BUILD_DIR/target/release-from-staging-area.sh"
   cat > "$FILE_NAME" <<EOM
 #!/bin/bash
 # This script releases the last published composite site from the staging area
@@ -1542,14 +1542,14 @@ function publishPlugin () {
 
   cd "${TMP_DIR}"
   rm -rf *
-  P2_ID_VAR_NAME=$3_P2_ID
+  local P2_ID_VAR_NAME=$3_P2_ID
   cp -r "$(getCacheLocation ${!P2_ID_VAR_NAME})" site
-  RELEASE_NAME="site-$TIMESTAMP"
-  ZIP_NAME="${RELEASE_NAME}.zip"
+  local RELEASE_NAME="site-$TIMESTAMP"
+  local ZIP_NAME="${RELEASE_NAME}.zip"
   zip -rq ${ZIP_NAME} site
 
-  PUBLIC_URL="plugins/$2/releases/${ECOSYSTEM_ECLIPSE_VERSION}/${SHORT_SCALA_VERSION}.x"
-  UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
+  local PUBLIC_URL="plugins/$2/releases/${ECOSYSTEM_ECLIPSE_VERSION}/${SHORT_SCALA_VERSION}.x"
+  local UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
 
   source "$AWS/activate"
   # Upload data as zip archive to keep a backup
@@ -1576,12 +1576,12 @@ function stepPublish () {
 
   cd "${ECOSYSTEM_P2_REPO}"
 
-  RELEASE_NAME="base-$TIMESTAMP"
-  ZIP_NAME="${RELEASE_NAME}.zip"
+  local RELEASE_NAME="base-$TIMESTAMP"
+  local ZIP_NAME="${RELEASE_NAME}.zip"
   zip -qr "$ZIP_NAME" base
 
-  PUBLIC_URL="sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
-  UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
+  local PUBLIC_URL="sdk/${ECOSYSTEM_SCALA_IDE_CODE_NAME}/${ECOSYSTEM_ECLIPSE_VERSION}/${ECOSYSTEM_SCALA_VERSION}/${BUILD_TYPE}"
+  local UPLOAD_DIR="$S3HOST/scalaide/$PUBLIC_URL"
 
   source "$AWS/activate"
   # Upload data as zip archive to keep a backup
