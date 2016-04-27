@@ -574,8 +574,7 @@ function stepSetFlags () {
       SCALA_VALIDATOR=true
       SCALA_REBUILD=false
       IDE_BUILD=true
-      # Disable this temporarily because sbt-republish is broken right now and we don't need to build this for each Scala validation anyway
-      #SBT_PUBLISH=true
+      SBT_PUBLISH=true
       ;;
     scala-pr-rebuild )
       SCALA_VALIDATOR=true
