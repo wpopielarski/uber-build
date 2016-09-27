@@ -856,6 +856,10 @@ function stepCheckConfiguration () {
         ECLIPSE_PROFILE="eclipse-luna"
         ECOSYSTEM_ECLIPSE_VERSION="e44"
         ;;
+      neon )
+        ECLIPSE_PROFILE="eclipse-neon"
+        ECOSYSTEM_ECLIPSE_VERSION="e46"
+        ;;
       * )
         error "Not supported eclipse platform: ${ECLIPSE_PLATFORM}."
         ;;
