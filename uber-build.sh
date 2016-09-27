@@ -698,12 +698,6 @@ function stepCheckConfiguration () {
     checkParameters "SCALA_GIT_REPO" "SCALA_GIT_HASH" "SCALA_DIR"
   fi
 
-  checkParameters "ZINC_BUILD_DIR"
-  if [ -n "${prRepoUrl}" ]
-  then
-    ZINC_BUILD_ARGS="-DprRepoUrl=${prRepoUrl}"
-  fi
-
   if ${IDE_BUILD}
   then
     checkParameters "ECLIPSE_PLATFORM"
@@ -983,10 +977,6 @@ function stepScala () {
     then
       # for releases, against released version of Scala, we should be able to recreate the file
       SCALA_VERSIONS_PROPERTIES_PATH=$(extrapolateVersionPropertiesFile)
-    else
-      # otherwise, use a fixed file
-      # TODO: see with the Scala team how they could package this file somewhere we can access for nightly builds
-      SCALA_VERSIONS_PROPERTIES_PATH="${ZINC_DIR}/versions-${SHORT_SCALA_VERSION}.properties"
     fi
   fi
 
