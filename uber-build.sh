@@ -374,41 +374,6 @@ function fetchGitBranch () {
 
 }
 
-# Pulls the local zinc build from our directory into the target directory to actually execute.
-# $1 - The directory into which we copy zinc.
-function fetchLocalZinc() {
-  if [ ! -x "$1/bin/dbuild" ]
-  then
-    rm -rf "$1"
-    mkdir -p "$(dirname "$1")"
-    if [ ! -x "${ZINC_DIR}/bin/dbuild" ]
-    then
-      error "No local zinc build found!  Required in ${ZINC_DIR}."
-    fi
-
-    cp -R "${ZINC_DIR}" "$1"
-  else
-    # We recopy over the scripts only to make sure they're up-to-date
-    cp ${ZINC_DIR}/bin/* "$1/bin"
-    cp ${ZINC_DIR}/*.properties "$1/"
-    cp ${ZINC_DIR}/sbt-on-* "$1/"
-  fi
-
-}
-
-##################
-# Properties Helpers
-##################
-
-# Reads the given property value from a properties file.  Intended to be used as:
-#   $(readProperty <file> <prop>)
-# $1 The property file
-# $2 The property
-function readProperty() {
-  local prop="$2"
-  echo $(grep -x "sbt-version=.*" "$1" | awk '{ split($0,a,"="); print a[2] }')
-}
-
 
 ##################
 ##################
@@ -539,9 +504,6 @@ function stepSetFlags () {
   SCALA_RELEASE=false
   SCALA_VALIDATOR=false
   SCALA_REBUILD=false
-  SBT_RELEASE=false
-  SBT_ALWAYS_BUILD=false
-  SBT_PUBLISH=false
   SIGN_ARTIFACTS=false
   WORKSHEET_PLUGIN=false
   PLAY_PLUGIN=false
@@ -574,7 +536,6 @@ function stepSetFlags () {
       SCALA_VALIDATOR=true
       SCALA_REBUILD=false
       IDE_BUILD=true
-      SBT_PUBLISH=true
       ;;
     scala-pr-rebuild )
       SCALA_VALIDATOR=true
@@ -585,15 +546,8 @@ function stepSetFlags () {
       SCALA_REBUILD=true
       IDE_BUILD=true
       ;;
-    sbt-nightly )
-      SBT_ALWAYS_BUILD=true
-      ;;
-    sbt-publish )
-      SBT_ALWAYS_BUILD=true
-      SBT_PUBLISH=true
-      ;;
     * )
-      missingParameterChoice "OPERATION" "release, release-dryrun, nightly, scala-pr-validator, scala-pr-rebuild, scala-local-build, sbt-nightly, sbt-publish"
+      missingParameterChoice "OPERATION" "release, release-dryrun, nightly, scala-pr-validator, scala-pr-rebuild, scala-local-build"
       ;;
   esac
 
@@ -743,8 +697,6 @@ function stepCheckConfiguration () {
   then
     checkParameters "SCALA_GIT_REPO" "SCALA_GIT_HASH" "SCALA_DIR"
   fi
-
-  checkParameters "SBT_VERSION"
 
   checkParameters "ZINC_BUILD_DIR"
   if [ -n "${prRepoUrl}" ]
@@ -1047,76 +999,6 @@ function stepScala () {
   SCALA_UID=$(osgiVersion "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}")
 }
 
-#######
-# Zinc
-#######
-
-# Constructs a zinc properties file in ZINC_DIR and gives the name of it.
-function makeZincPropertiesFile() {
-  local filename="current-zinc-build.properties"
-  local properties_file="${ZINC_BUILD_DIR}/${filename}"
-  info "Writing properties: ${properties_file}"
-
-  if ${SBT_PUBLISH}
-  then
-    local PUBLISH_REPO="${IDE_M2_REPO}"
-  else
-    local PUBLISH_REPO="file://${LOCAL_M2_REPO}"
-  fi
-
-  cat > "${properties_file}" << EOF
-publish-repo=${PUBLISH_REPO}
-sbt-tag=${SBT_TAG}
-sbt-version=${FULL_SBT_VERSION}
-EOF
-
-  info "$(cat "${properties_file}")"
-
-  # Returns the name of the generated file
-  echo "${filename}"
-}
-
-function stepZinc () {
-  printStep "Zinc"
-
-  IDE_M2_REPO=${IDE_M2_REPO-"https://proxy-ch.typesafe.com:8082/artifactory/ide-${SHORT_SCALA_VERSION}"}
-
-  if ${RELEASE}
-  then
-    FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE"
-  elif ${SBT_PUBLISH}
-  then
-    FULL_SBT_VERSION="${SBT_VERSION}-on-${FULL_SCALA_VERSION}-for-IDE-SNAPSHOT"
-  else
-    FULL_SBT_VERSION="${SBT_VERSION}-on-${SCALA_UID}-for-IDE"
-  fi
-
-  if ${SBT_ALWAYS_BUILD} || ! checkAvailability "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
-  then
-    info "Building Zinc using dbuild"
-
-    fetchLocalZinc "${ZINC_BUILD_DIR}"
-
-    ZINC_PROPERTIES_FILE=$(makeZincPropertiesFile)
-
-    info "Detected sbt version: ${FULL_SBT_VERSION}"
-    cd "${ZINC_BUILD_DIR}"
-
-    if $USE_SCALA_VERSIONS_PROPERTIES_FILE
-    then
-      cp "${SCALA_VERSIONS_PROPERTIES_PATH}" versions.properties
-    fi
-    SBT_VERSION_PROPERTIES_FILE="file:${ZINC_PROPERTIES_FILE}" \
-      SCALA_VERSION="${FULL_SCALA_VERSION}" \
-      LOCAL_M2_REPO="${LOCAL_M2_REPO}" \
-      bin/dbuild ${ZINC_BUILD_ARGS} sbt-on-${SHORT_SCALA_VERSION}.x
-  fi
-
-  checkNeeded "com.typesafe.sbt" "incremental-compiler" "${FULL_SBT_VERSION}" "${IDE_M2_REPO}"
-
-  SBT_UID=${FULL_SBT_VERSION}
-}
-
 ####################
 # Scala Refactoring
 ####################
@@ -1195,9 +1077,9 @@ function stepScalaIDE () {
 
   if $SIGN_ARTIFACTS
   then
-    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}-S/${SCALA_UID}/${SBT_UID}/${SCALA_REFACTORING_UID}/${SCALARIFORM_UID}
+    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}-S/${SCALA_UID}/${SCALA_REFACTORING_UID}/${SCALARIFORM_UID}
   else
-    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}/${SCALA_UID}/${SBT_UID}/${SCALA_REFACTORING_UID}/${SCALARIFORM_UID}
+    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}/${SCALA_UID}/${SCALA_REFACTORING_UID}/${SCALARIFORM_UID}
   fi
 
   if ! checkCache ${SCALA_IDE_P2_ID}
@@ -1231,8 +1113,6 @@ function stepScalaIDE () {
       -Dscala.version=${FULL_SCALA_VERSION} \
       -Dscala.minor.version=${FULL_SCALA_VERSION} \
       -Dversion.tag=${SCALA_IDE_VERSION_TAG} ${LITHIUM_ARGS} \
-      -Dsbt.version=${SBT_VERSION} \
-      -Dsbt.ide.version=${FULL_SBT_VERSION} \
       -Drepo.scala-refactoring=$(getCacheURL ${SCALA_REFACTORING_P2_ID}) \
       -Drepo.scalariform=$(getCacheURL ${SCALARIFORM_P2_ID}) \
       clean \
@@ -1630,8 +1510,6 @@ stepCheckPrerequisites
 stepCheckConfiguration
 
 stepScala
-
-stepZinc
 
 if ${IDE_BUILD}
 then
