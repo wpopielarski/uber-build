@@ -1011,7 +1011,6 @@ function stepScalaRefactoring () {
     $SBT_RUNNER \
       'set publishTo := Some(Resolver.file("Local M2 repo", file("'$LOCAL_M2_REPO'")))' \
       'set scalaVersion := "'$FULL_SCALA_VERSION'"' \
-      'set resolvers += "Scala artifacts" at "'$IDE_M2_REPO'"' \
       publish
 
     storeCache ${SCALA_REFACTORING_P2_ID} "$LOCAL_M2_REPO"
@@ -1097,7 +1096,6 @@ function stepScalaIDE () {
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
       -Dscala.version=${FULL_SCALA_VERSION} \
-      -Dscala.minor.version=${FULL_SCALA_VERSION} \
       -Dversion.tag=${SCALA_IDE_VERSION_TAG} ${LITHIUM_ARGS} \
       -Drepo.scala-refactoring=$(getCacheURL ${SCALA_REFACTORING_P2_ID}) \
       -Drepo.scalariform=$(getCacheURL ${SCALARIFORM_P2_ID}) \
