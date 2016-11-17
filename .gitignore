@@ -12,4 +12,4 @@ typesafe-ide/
 worksheet-plugin/
 scala-search/
 next/
-target/
+target**/

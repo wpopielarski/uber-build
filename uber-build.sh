@@ -698,12 +698,6 @@ function stepCheckConfiguration () {
     checkParameters "SCALA_GIT_REPO" "SCALA_GIT_HASH" "SCALA_DIR"
   fi
 
-  checkParameters "ZINC_BUILD_DIR"
-  if [ -n "${prRepoUrl}" ]
-  then
-    ZINC_BUILD_ARGS="-DprRepoUrl=${prRepoUrl}"
-  fi
-
   if ${IDE_BUILD}
   then
     checkParameters "ECLIPSE_PLATFORM"
@@ -987,10 +981,6 @@ function stepScala () {
     then
       # for releases, against released version of Scala, we should be able to recreate the file
       SCALA_VERSIONS_PROPERTIES_PATH=$(extrapolateVersionPropertiesFile)
-    else
-      # otherwise, use a fixed file
-      # TODO: see with the Scala team how they could package this file somewhere we can access for nightly builds
-      SCALA_VERSIONS_PROPERTIES_PATH="${ZINC_DIR}/versions-${SHORT_SCALA_VERSION}.properties"
     fi
   fi
 
@@ -1025,7 +1015,6 @@ function stepScalaRefactoring () {
     $SBT_RUNNER \
       'set publishTo := Some(Resolver.file("Local M2 repo", file("'$LOCAL_M2_REPO'")))' \
       'set scalaVersion := "'$FULL_SCALA_VERSION'"' \
-      'set resolvers += "Scala artifacts" at "'$IDE_M2_REPO'"' \
       publish
 
     storeCache ${SCALA_REFACTORING_P2_ID} "$LOCAL_M2_REPO"
@@ -1111,7 +1100,6 @@ function stepScalaIDE () {
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
       -Dscala.version=${FULL_SCALA_VERSION} \
-      -Dscala.minor.version=${FULL_SCALA_VERSION} \
       -Dversion.tag=${SCALA_IDE_VERSION_TAG} ${LITHIUM_ARGS} \
       -Drepo.scala-refactoring=$(getCacheURL ${SCALA_REFACTORING_P2_ID}) \
       -Drepo.scalariform=$(getCacheURL ${SCALARIFORM_P2_ID}) \
