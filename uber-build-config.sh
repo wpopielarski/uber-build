@@ -13,7 +13,7 @@ else
 fi
 
 # Points to the repo that contains the private keystore values. This repo is therefore also private.
-KEYSTORE_GIT_REPO="https://github.com/typesafehub/typesafe-keystore.git"
+KEYSTORE_GIT_REPO="git@github.com:typesafehub/typesafe-keystore.git"
 
 # If debug information should be printed while uber-build is running, this variable need to be set to an arbitrary value.
 DEBUG=1
