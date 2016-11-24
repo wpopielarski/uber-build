@@ -444,7 +444,7 @@ function stepLoadConfig () {
   fi
 
 # needed to ensure that SBT only relies on local directories
-  export JAVA_TOOL_OPTIONS="-Dsbt.ivy.home=$LOCAL_IVY_REPO -Dsbt.dir=$LOCAL_IVY_REPO/global -Dsbt.global.base=$LOCAL_IVY_REPO/global"
+  export JAVA_TOOL_OPTIONS="-Divy.home=$LOCAL_IVY_REPO -Dsbt.ivy.home=$LOCAL_IVY_REPO -Dsbt.dir=$LOCAL_IVY_REPO/global -Dsbt.global.base=$LOCAL_IVY_REPO/global"
 }
 
 ################
@@ -801,6 +801,10 @@ function stepCheckConfiguration () {
       luna )
         ECLIPSE_PROFILE="eclipse-luna"
         ECOSYSTEM_ECLIPSE_VERSION="e44"
+        ;;
+      neon )
+        ECLIPSE_PROFILE="eclipse-neon"
+        ECOSYSTEM_ECLIPSE_VERSION="e46"
         ;;
       * )
         error "Not supported eclipse platform: ${ECLIPSE_PLATFORM}."
