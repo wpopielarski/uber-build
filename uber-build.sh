@@ -1167,17 +1167,6 @@ function stepPlugin () {
 
     mvn ${MAVEN_ARGS[@]} \
       -Dtycho.localArtifacts=ignore \
-      -Pset-versions \
-      -P${ECLIPSE_PROFILE} \
-      -P${SCALA_PROFILE} \
-      -Drepo.scala-ide=$(getCacheURL ${SCALA_IDE_P2_ID}) \
-      -Dscala.version=${FULL_SCALA_VERSION} \
-      -Dtycho.style=maven \
-      --non-recursive \
-      exec:java
-
-    mvn ${MAVEN_ARGS[@]} \
-      -Dtycho.localArtifacts=ignore \
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
       -Drepo.scala-ide=$(getCacheURL ${SCALA_IDE_P2_ID}) \
