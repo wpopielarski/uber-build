@@ -1085,11 +1085,12 @@ function stepScalaIDE () {
     # lithium scala version configuration
     # TODO: detect lithium earlier
 
-    if ${SCALA_211_OR_LATER}
+    if ${SCALA_212_OR_LATER}
     then
       checkParameters "SCALA210_VERSION"
+      checkParameters "SCALA211_VERSION"
       # TODO: check that SCALA210_VERSION is set, for lithium only
-      LITHIUM_ARGS="-Dscala210.version=${SCALA210_VERSION} -Dscala211.version=${FULL_SCALA_VERSION}"
+      LITHIUM_ARGS="-Dscala210.version=${SCALA210_VERSION} -Dscala211.version=${SCALA211_VERSION}"
     elif ${SCALA_210_OR_LATER}
     then
       LITHIUM_ARGS="-Dscala210.version=${FULL_SCALA_VERSION}"
