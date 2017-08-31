@@ -703,7 +703,6 @@ function stepCheckConfiguration () {
     checkParameters "ECLIPSE_PLATFORM"
     checkParameters "SCALA_IDE_DIR" "SCALA_IDE_GIT_REPO" "SCALA_IDE_GIT_BRANCH" "SCALA_IDE_VERSION_TAG"
     checkParameters "SCALA_REFACTORING_DIR" "SCALA_REFACTORING_GIT_REPO" "SCALA_REFACTORING_GIT_BRANCH"
-    checkParameters "SCALARIFORM_DIR" "SCALARIFORM_GIT_REPO" "SCALARIFORM_GIT_BRANCH"
   fi
 
   if ${WORKSHEET_PLUGIN}
@@ -1021,36 +1020,6 @@ function stepScalaRefactoring () {
   fi
 }
 
-##############
-# Scalariform
-##############
-
-function stepScalariform () {
-  printStep "Scalariform"
-
-  fetchGitBranch "${SCALARIFORM_DIR}" "${SCALARIFORM_GIT_REPO}" "${SCALARIFORM_GIT_BRANCH}" NaN
-
-  cd "${SCALARIFORM_DIR}"
-
-  SCALARIFORM_UID=$(git rev-parse HEAD)
-
-  SCALARIFORM_P2_ID=scalariform/${SCALARIFORM_UID}/${SCALA_UID}
-
-  if ! checkCache ${SCALARIFORM_P2_ID}
-  then
-    info "Building Scalariform"
-
-    mvn "${MAVEN_ARGS[@]}" \
-      -P ${SCALA_PROFILE} \
-      -Dscala.version=${FULL_SCALA_VERSION} \
-      -Dgit.hash=${SCALARIFORM_UID} \
-      clean \
-      verify
-
-    storeCache ${SCALARIFORM_P2_ID} "${SCALARIFORM_DIR}/scalariform.update/target/site"
-  fi
-}
-
 ############
 # Scala IDE
 ############
@@ -1066,9 +1035,9 @@ function stepScalaIDE () {
 
   if $SIGN_ARTIFACTS
   then
-    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}-S/${SCALA_UID}/${SCALA_REFACTORING_UID}/${SCALARIFORM_UID}
+    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}-S/${SCALA_UID}/${SCALA_REFACTORING_UID}
   else
-    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}/${SCALA_UID}/${SCALA_REFACTORING_UID}/${SCALARIFORM_UID}
+    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}/${SCALA_UID}/${SCALA_REFACTORING_UID}
   fi
 
   if ! checkCache ${SCALA_IDE_P2_ID}
@@ -1103,7 +1072,6 @@ function stepScalaIDE () {
       -Dscala.version=${FULL_SCALA_VERSION} \
       -Dversion.tag=${SCALA_IDE_VERSION_TAG} ${LITHIUM_ARGS} \
       -Drepo.scala-refactoring=$(getCacheURL ${SCALA_REFACTORING_P2_ID}) \
-      -Drepo.scalariform=$(getCacheURL ${SCALARIFORM_P2_ID}) \
       clean \
       install
 
@@ -1492,7 +1460,6 @@ stepScala
 if ${IDE_BUILD}
 then
   stepScalaRefactoring
-  stepScalariform
 
   stepScalaIDE
 fi
