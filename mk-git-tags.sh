@@ -24,7 +24,6 @@ SIGN_MESSAGE=$3 #"Scala IDE 4.1.0-RC1 release"
 source $CONFIG_FILE
 
 SCALA_IDE_DIR="$BASE_DIR/scala-ide"
-SCALA_REFACTORING_DIR="$BASE_DIR/scala-refactoring"
 WORKSHEET_PLUGIN_DIR="$BASE_DIR/scala-worksheet"
 PLAY_PLUGIN_DIR="$BASE_DIR/scala-ide-play2"
 SEARCH_PLUGIN_DIR="$BASE_DIR/scala-search"
@@ -32,7 +31,6 @@ PRODUCT_DIR="$BASE_DIR/scala-ide-product"
 
 # Check if all necessary repos exist
 [ ! -d "$SCALA_IDE_DIR" ] && echo "error: $SCALA_IDE_DIR does not exist" && exit 1
-[ ! -d "$SCALA_REFACTORING_DIR" ] && echo "error: $SCALA_REFACTORING_DIR does not exist" && exit 1
 [ ! -d "$WORKSHEET_PLUGIN_DIR" ] && echo "error: $WORKSHEET_PLUGIN_DIR does not exist" && exit 1
 [ ! -d "$PLAY_PLUGIN_DIR" ] && echo "error: $PLAY_PLUGIN_DIR does not exist" && exit 1
 [ ! -d "$PRODUCT_DIR" ] && echo "error: $PRODUCT_DIR does not exist" && exit 1
@@ -59,7 +57,6 @@ function createTag() {
 echo ">>> All checks successful. Starting to create tags now."
 
 createTag "$SCALA_IDE_DIR" "$SCALA_IDE_GIT_BRANCH" "$SIGN_MESSAGE"
-createTag "$SCALA_REFACTORING_DIR" "$SCALA_REFACTORING_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$WORKSHEET_PLUGIN_DIR" "$WORKSHEET_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$PLAY_PLUGIN_DIR" "$PLAY_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$SEARCH_PLUGIN_DIR" "$SEARCH_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"

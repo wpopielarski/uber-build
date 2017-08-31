@@ -702,7 +702,6 @@ function stepCheckConfiguration () {
   then
     checkParameters "ECLIPSE_PLATFORM"
     checkParameters "SCALA_IDE_DIR" "SCALA_IDE_GIT_REPO" "SCALA_IDE_GIT_BRANCH" "SCALA_IDE_VERSION_TAG"
-    checkParameters "SCALA_REFACTORING_DIR" "SCALA_REFACTORING_GIT_REPO" "SCALA_REFACTORING_GIT_BRANCH"
   fi
 
   if ${WORKSHEET_PLUGIN}
@@ -988,38 +987,6 @@ function stepScala () {
   SCALA_UID=$(osgiVersion "org.scala-lang" "scala-compiler" "${FULL_SCALA_VERSION}")
 }
 
-####################
-# Scala Refactoring
-####################
-
-function stepScalaRefactoring () {
-  printStep "Scala Refactoring"
-
-  fetchGitBranch "${SCALA_REFACTORING_DIR}" "${SCALA_REFACTORING_GIT_REPO}" "${SCALA_REFACTORING_GIT_BRANCH}" NaN
-
-  cd "${SCALA_REFACTORING_DIR}"
-
-  SCALA_REFACTORING_UID=$(git rev-parse HEAD)
-
-  SCALA_REFACTORING_P2_ID=scala-refactoring/${SCALA_REFACTORING_UID}/${SCALA_UID}
-
-  if ! checkCache ${SCALA_REFACTORING_P2_ID}
-  then
-    info "Building Scala Refactoring"
-
-    # We do not want to add the scoverage plugin to the scala-refactoring build during CI integration,
-    # since this plugin depends on scalac.
-    export OMIT_SCOVERAGE_PLUGIN="true"
-
-    $SBT_RUNNER \
-      'set publishTo := Some(Resolver.file("Local M2 repo", file("'$LOCAL_M2_REPO'")))' \
-      'set scalaVersion := "'$FULL_SCALA_VERSION'"' \
-      publish
-
-    storeCache ${SCALA_REFACTORING_P2_ID} "$LOCAL_M2_REPO"
-  fi
-}
-
 ############
 # Scala IDE
 ############
@@ -1035,9 +1002,9 @@ function stepScalaIDE () {
 
   if $SIGN_ARTIFACTS
   then
-    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}-S/${SCALA_UID}/${SCALA_REFACTORING_UID}
+    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}-S/${SCALA_UID}
   else
-    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}/${SCALA_UID}/${SCALA_REFACTORING_UID}
+    SCALA_IDE_P2_ID=scala-ide/${SCALA_IDE_UID}/${SCALA_UID}
   fi
 
   if ! checkCache ${SCALA_IDE_P2_ID}
@@ -1071,7 +1038,6 @@ function stepScalaIDE () {
       -P${SCALA_PROFILE} \
       -Dscala.version=${FULL_SCALA_VERSION} \
       -Dversion.tag=${SCALA_IDE_VERSION_TAG} ${LITHIUM_ARGS} \
-      -Drepo.scala-refactoring=$(getCacheURL ${SCALA_REFACTORING_P2_ID}) \
       clean \
       install
 
@@ -1459,8 +1425,6 @@ stepScala
 
 if ${IDE_BUILD}
 then
-  stepScalaRefactoring
-
   stepScalaIDE
 fi
 
