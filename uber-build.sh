@@ -509,6 +509,7 @@ function stepSetFlags () {
   PLAY_PLUGIN=false
   SEARCH_PLUGIN=false
   SCALATEST_PLUGIN=false
+  LAGOM_PLUGIN=false
   PUBLISH=false
 # set in during check configuration
   USE_SCALA_VERSIONS_PROPERTIES_FILE=false
@@ -567,8 +568,11 @@ function stepSetFlags () {
       scalatest )
         SCALATEST_PLUGIN=true
         ;;
+      lagom )
+        LAGOM_PLUGIN=true
+        ;;
       * )
-        error "Unknown value in PLUGINS. Should be one of: worksheet play search scalatest."
+        error "Unknown value in PLUGINS. Should be one of: worksheet play search scalatest lagom."
     esac
   done
 
@@ -716,6 +720,11 @@ function stepCheckConfiguration () {
     checkParameters "PLAY_PLUGIN_DIR" "PLAY_PLUGIN_GIT_REPO" "PLAY_PLUGIN_GIT_BRANCH" "PLAY_PLUGIN_VERSION_TAG"
   fi
 
+  if ${LAGOM_PLUGIN}
+  then
+    checkParameters "LAGOM_PLUGIN_DIR" "LAGOM_PLUGIN_GIT_REPO" "LAGOM_PLUGIN_GIT_BRANCH" "LAGOM_PLUGIN_VERSION_TAG"
+  fi
+
   if ${SEARCH_PLUGIN}
   then
     checkParameters "SEARCH_PLUGIN_DIR" "SEARCH_PLUGIN_GIT_REPO" "SEARCH_PLUGIN_GIT_BRANCH" "SEARCH_PLUGIN_VERSION_TAG"
@@ -805,6 +814,10 @@ function stepCheckConfiguration () {
       neon )
         ECLIPSE_PROFILE="eclipse-neon"
         ECOSYSTEM_ECLIPSE_VERSION="e46"
+        ;;
+      oxygen )
+        ECLIPSE_PROFILE="eclipse-oxygen"
+        ECOSYSTEM_ECLIPSE_VERSION="e47"
         ;;
       * )
         error "Not supported eclipse platform: ${ECLIPSE_PLATFORM}."
@@ -1239,6 +1252,11 @@ function stepProduct () {
     PRODUCT_P2_ID=${PRODUCT_P2_ID}/P-${PLAY_PLUGIN_UID}
   fi
 
+  if ${LAGOM_PLUGIN}
+  then
+    PRODUCT_P2_ID=${PRODUCT_P2_ID}/P-${LAGOM_PLUGIN_UID}
+  fi
+
   if ${SEARCH_PLUGIN}
   then
     PRODUCT_P2_ID=${PRODUCT_P2_ID}/S-${SEARCH_PLUGIN_UID}
@@ -1268,6 +1286,11 @@ function stepProduct () {
     if ${PLAY_PLUGIN}
     then
       mergeP2Repo "$(getCacheLocation ${PLAY_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
+    fi
+
+    if ${LAGOM_PLUGIN}
+    then
+      mergeP2Repo "$(getCacheLocation ${LAGOM_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
     fi
 
     if ${SEARCH_PLUGIN}
@@ -1458,6 +1481,11 @@ function stepPublish () {
     publishPlugin "Play" "scala-ide-play2" "PLAY_PLUGIN"
   fi
 
+  if ${LAGOM_PLUGIN}
+  then
+    publishPlugin "Lagom" "lagom-eclipse-plugin" "LAGOM_PLUGIN"
+  fi
+
   if ${SEARCH_PLUGIN}
   then
     publishPlugin "Search" "scala-search" "SEARCH_PLUGIN"
@@ -1505,6 +1533,11 @@ fi
 if ${PLAY_PLUGIN}
 then
   stepPlugin "Play" "play" "PLAY_PLUGIN" "${PLAY_PLUGIN_DIR}" "${PLAY_PLUGIN_GIT_REPO}" "${PLAY_PLUGIN_GIT_BRANCH}" "${PLAY_PLUGIN_VERSION_TAG}"
+fi
+
+if ${LAGOM_PLUGIN}
+then
+  stepPlugin "Lagom" "lagom" "LAGOM_PLUGIN" "${LAGOM_PLUGIN_DIR}" "${LAGOM_PLUGIN_GIT_REPO}" "${LAGOM_PLUGIN_GIT_BRANCH}" "${LAGOM_PLUGIN_VERSION_TAG}"
 fi
 
 if ${SEARCH_PLUGIN}

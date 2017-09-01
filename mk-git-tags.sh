@@ -24,19 +24,17 @@ SIGN_MESSAGE=$3 #"Scala IDE 4.1.0-RC1 release"
 source $CONFIG_FILE
 
 SCALA_IDE_DIR="$BASE_DIR/scala-ide"
-SCALA_REFACTORING_DIR="$BASE_DIR/scala-refactoring"
-SCALARIFORM_DIR="$BASE_DIR/scalariform"
 WORKSHEET_PLUGIN_DIR="$BASE_DIR/scala-worksheet"
 PLAY_PLUGIN_DIR="$BASE_DIR/scala-ide-play2"
+LAGOM_PLUGIN_DIR="$BASE_DIR/lagom-eclipse-plugin"
 SEARCH_PLUGIN_DIR="$BASE_DIR/scala-search"
 PRODUCT_DIR="$BASE_DIR/scala-ide-product"
 
 # Check if all necessary repos exist
 [ ! -d "$SCALA_IDE_DIR" ] && echo "error: $SCALA_IDE_DIR does not exist" && exit 1
-[ ! -d "$SCALA_REFACTORING_DIR" ] && echo "error: $SCALA_REFACTORING_DIR does not exist" && exit 1
-[ ! -d "$SCALARIFORM_DIR" ] && echo "error: $SCALARIFORM_DIR does not exist" && exit 1
 [ ! -d "$WORKSHEET_PLUGIN_DIR" ] && echo "error: $WORKSHEET_PLUGIN_DIR does not exist" && exit 1
 [ ! -d "$PLAY_PLUGIN_DIR" ] && echo "error: $PLAY_PLUGIN_DIR does not exist" && exit 1
+[ ! -d "$LAGOM_PLUGIN_DIR" ] && echo "error: $LAGOM_PLUGIN_DIR does not exist" && exit 1
 [ ! -d "$PRODUCT_DIR" ] && echo "error: $PRODUCT_DIR does not exist" && exit 1
 
 # Creates the tag that is specified in CONFIG_FILE or do nothing if it already exist.
@@ -61,10 +59,9 @@ function createTag() {
 echo ">>> All checks successful. Starting to create tags now."
 
 createTag "$SCALA_IDE_DIR" "$SCALA_IDE_GIT_BRANCH" "$SIGN_MESSAGE"
-createTag "$SCALA_REFACTORING_DIR" "$SCALA_REFACTORING_GIT_BRANCH" "$SIGN_MESSAGE"
-createTag "$SCALARIFORM_DIR" "$SCALARIFORM_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$WORKSHEET_PLUGIN_DIR" "$WORKSHEET_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$PLAY_PLUGIN_DIR" "$PLAY_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"
+createTag "$LAGOM_PLUGIN_DIR" "$LAGOM_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$SEARCH_PLUGIN_DIR" "$SEARCH_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$PRODUCT_DIR" "$PRODUCT_GIT_BRANCH" "$SIGN_MESSAGE"
 
