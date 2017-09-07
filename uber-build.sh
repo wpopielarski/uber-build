@@ -1085,7 +1085,6 @@ function stepScalaIDE () {
 ##################
 # Plugin
 ##################
-
 # $1 - pretty name
 # $2 - logic name
 # $3 - var prefix
@@ -1093,7 +1092,8 @@ function stepScalaIDE () {
 # $5 - git repo
 # $6 - git branch
 # $7 - version tag
-function stepPlugin () {
+# $8 - should set scala version for maven call
+function stepPluginOverScalaVersion () {
   printStep "$1"
 
   fetchGitBranch "$4" "$5" "$6" NaN
@@ -1108,17 +1108,22 @@ function stepPlugin () {
 
   eval $3_P2_ID=${P2_ID}
 
+  local SCALA_VERSION_PARAMETER=$8
+  if [ -n $SCALA_VERSION_PARAMETER ]
+  then
+    info "Build with $SCALA_VERSION_PARAMETER"
+  fi
+
   if ! checkCache ${P2_ID}
   then
     info "Building $1"
-
 
     mvn ${MAVEN_ARGS[@]} \
       -Dtycho.localArtifacts=ignore \
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
       -Drepo.scala-ide=$(getCacheURL ${SCALA_IDE_P2_ID}) \
-      -Dscala.version=${FULL_SCALA_VERSION} \
+      $SCALA_VERSION_PARAMETER \
       -Dversion.tag=$7 \
       ${MAVEN_SIGN_ARGS[@]} \
       dependency:tree \
@@ -1129,6 +1134,9 @@ function stepPlugin () {
   fi
 }
 
+function stepPlugin () {
+  stepPluginOverScalaVersion "$@" "-Dscala.version=${FULL_SCALA_VERSION}"
+}
 ##################
 # ScalaTest
 ##################
@@ -1468,7 +1476,7 @@ fi
 
 if ${LAGOM_PLUGIN}
 then
-  stepPlugin "Lagom" "lagom" "LAGOM_PLUGIN" "${LAGOM_PLUGIN_DIR}" "${LAGOM_PLUGIN_GIT_REPO}" "${LAGOM_PLUGIN_GIT_BRANCH}" "${LAGOM_PLUGIN_VERSION_TAG}"
+  stepPluginOverScalaVersion "Lagom" "lagom" "LAGOM_PLUGIN" "${LAGOM_PLUGIN_DIR}" "${LAGOM_PLUGIN_GIT_REPO}" "${LAGOM_PLUGIN_GIT_BRANCH}" "${LAGOM_PLUGIN_VERSION_TAG}"
 fi
 
 if ${SEARCH_PLUGIN}
