@@ -509,6 +509,7 @@ function stepSetFlags () {
   PLAY_PLUGIN=false
   SEARCH_PLUGIN=false
   SCALATEST_PLUGIN=false
+  LAGOM_PLUGIN=false
   PUBLISH=false
 # set in during check configuration
   USE_SCALA_VERSIONS_PROPERTIES_FILE=false
@@ -567,8 +568,11 @@ function stepSetFlags () {
       scalatest )
         SCALATEST_PLUGIN=true
         ;;
+      lagom )
+        LAGOM_PLUGIN=true
+        ;;
       * )
-        error "Unknown value in PLUGINS. Should be one of: worksheet play search scalatest."
+        error "Unknown value in PLUGINS. Should be one of: worksheet play search scalatest lagom."
     esac
   done
 
@@ -714,6 +718,11 @@ function stepCheckConfiguration () {
     checkParameters "PLAY_PLUGIN_DIR" "PLAY_PLUGIN_GIT_REPO" "PLAY_PLUGIN_GIT_BRANCH" "PLAY_PLUGIN_VERSION_TAG"
   fi
 
+  if ${LAGOM_PLUGIN}
+  then
+    checkParameters "LAGOM_PLUGIN_DIR" "LAGOM_PLUGIN_GIT_REPO" "LAGOM_PLUGIN_GIT_BRANCH" "LAGOM_PLUGIN_VERSION_TAG"
+  fi
+
   if ${SEARCH_PLUGIN}
   then
     checkParameters "SEARCH_PLUGIN_DIR" "SEARCH_PLUGIN_GIT_REPO" "SEARCH_PLUGIN_GIT_BRANCH" "SEARCH_PLUGIN_VERSION_TAG"
@@ -803,6 +812,10 @@ function stepCheckConfiguration () {
       neon )
         ECLIPSE_PROFILE="eclipse-neon"
         ECOSYSTEM_ECLIPSE_VERSION="e46"
+        ;;
+      oxygen )
+        ECLIPSE_PROFILE="eclipse-oxygen"
+        ECOSYSTEM_ECLIPSE_VERSION="e47"
         ;;
       * )
         error "Not supported eclipse platform: ${ECLIPSE_PLATFORM}."
@@ -1072,7 +1085,6 @@ function stepScalaIDE () {
 ##################
 # Plugin
 ##################
-
 # $1 - pretty name
 # $2 - logic name
 # $3 - var prefix
@@ -1080,7 +1092,8 @@ function stepScalaIDE () {
 # $5 - git repo
 # $6 - git branch
 # $7 - version tag
-function stepPlugin () {
+# $8 - should set scala version for maven call
+function stepPluginOverScalaVersion () {
   printStep "$1"
 
   fetchGitBranch "$4" "$5" "$6" NaN
@@ -1095,17 +1108,22 @@ function stepPlugin () {
 
   eval $3_P2_ID=${P2_ID}
 
+  local SCALA_VERSION_PARAMETER=$8
+  if [ -n $SCALA_VERSION_PARAMETER ]
+  then
+    info "Build with $SCALA_VERSION_PARAMETER"
+  fi
+
   if ! checkCache ${P2_ID}
   then
     info "Building $1"
-
 
     mvn ${MAVEN_ARGS[@]} \
       -Dtycho.localArtifacts=ignore \
       -P${ECLIPSE_PROFILE} \
       -P${SCALA_PROFILE} \
       -Drepo.scala-ide=$(getCacheURL ${SCALA_IDE_P2_ID}) \
-      -Dscala.version=${FULL_SCALA_VERSION} \
+      $SCALA_VERSION_PARAMETER \
       -Dversion.tag=$7 \
       ${MAVEN_SIGN_ARGS[@]} \
       dependency:tree \
@@ -1116,6 +1134,9 @@ function stepPlugin () {
   fi
 }
 
+function stepPlugin () {
+  stepPluginOverScalaVersion "$@" "-Dscala.version=${FULL_SCALA_VERSION}"
+}
 ##################
 # ScalaTest
 ##################
@@ -1173,6 +1194,11 @@ function stepProduct () {
     PRODUCT_P2_ID=${PRODUCT_P2_ID}/P-${PLAY_PLUGIN_UID}
   fi
 
+  if ${LAGOM_PLUGIN}
+  then
+    PRODUCT_P2_ID=${PRODUCT_P2_ID}/P-${LAGOM_PLUGIN_UID}
+  fi
+
   if ${SEARCH_PLUGIN}
   then
     PRODUCT_P2_ID=${PRODUCT_P2_ID}/S-${SEARCH_PLUGIN_UID}
@@ -1202,6 +1228,11 @@ function stepProduct () {
     if ${PLAY_PLUGIN}
     then
       mergeP2Repo "$(getCacheLocation ${PLAY_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
+    fi
+
+    if ${LAGOM_PLUGIN}
+    then
+      mergeP2Repo "$(getCacheLocation ${LAGOM_PLUGIN_P2_ID})" "${PRODUCT_BUILD_P2_REPO}"
     fi
 
     if ${SEARCH_PLUGIN}
@@ -1392,6 +1423,11 @@ function stepPublish () {
     publishPlugin "Play" "scala-ide-play2" "PLAY_PLUGIN"
   fi
 
+  if ${LAGOM_PLUGIN}
+  then
+    publishPlugin "Lagom" "lagom-eclipse-plugin" "LAGOM_PLUGIN"
+  fi
+
   if ${SEARCH_PLUGIN}
   then
     publishPlugin "Search" "scala-search" "SEARCH_PLUGIN"
@@ -1436,6 +1472,11 @@ fi
 if ${PLAY_PLUGIN}
 then
   stepPlugin "Play" "play" "PLAY_PLUGIN" "${PLAY_PLUGIN_DIR}" "${PLAY_PLUGIN_GIT_REPO}" "${PLAY_PLUGIN_GIT_BRANCH}" "${PLAY_PLUGIN_VERSION_TAG}"
+fi
+
+if ${LAGOM_PLUGIN}
+then
+  stepPluginOverScalaVersion "Lagom" "lagom" "LAGOM_PLUGIN" "${LAGOM_PLUGIN_DIR}" "${LAGOM_PLUGIN_GIT_REPO}" "${LAGOM_PLUGIN_GIT_BRANCH}" "${LAGOM_PLUGIN_VERSION_TAG}"
 fi
 
 if ${SEARCH_PLUGIN}

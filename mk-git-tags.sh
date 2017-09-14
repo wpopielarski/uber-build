@@ -26,6 +26,7 @@ source $CONFIG_FILE
 SCALA_IDE_DIR="$BASE_DIR/scala-ide"
 WORKSHEET_PLUGIN_DIR="$BASE_DIR/scala-worksheet"
 PLAY_PLUGIN_DIR="$BASE_DIR/scala-ide-play2"
+LAGOM_PLUGIN_DIR="$BASE_DIR/lagom-eclipse-plugin"
 SEARCH_PLUGIN_DIR="$BASE_DIR/scala-search"
 PRODUCT_DIR="$BASE_DIR/scala-ide-product"
 
@@ -33,6 +34,7 @@ PRODUCT_DIR="$BASE_DIR/scala-ide-product"
 [ ! -d "$SCALA_IDE_DIR" ] && echo "error: $SCALA_IDE_DIR does not exist" && exit 1
 [ ! -d "$WORKSHEET_PLUGIN_DIR" ] && echo "error: $WORKSHEET_PLUGIN_DIR does not exist" && exit 1
 [ ! -d "$PLAY_PLUGIN_DIR" ] && echo "error: $PLAY_PLUGIN_DIR does not exist" && exit 1
+[ ! -d "$LAGOM_PLUGIN_DIR" ] && echo "error: $LAGOM_PLUGIN_DIR does not exist" && exit 1
 [ ! -d "$PRODUCT_DIR" ] && echo "error: $PRODUCT_DIR does not exist" && exit 1
 
 # Creates the tag that is specified in CONFIG_FILE or do nothing if it already exist.
@@ -59,6 +61,7 @@ echo ">>> All checks successful. Starting to create tags now."
 createTag "$SCALA_IDE_DIR" "$SCALA_IDE_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$WORKSHEET_PLUGIN_DIR" "$WORKSHEET_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$PLAY_PLUGIN_DIR" "$PLAY_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"
+createTag "$LAGOM_PLUGIN_DIR" "$LAGOM_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$SEARCH_PLUGIN_DIR" "$SEARCH_PLUGIN_GIT_BRANCH" "$SIGN_MESSAGE"
 createTag "$PRODUCT_DIR" "$PRODUCT_GIT_BRANCH" "$SIGN_MESSAGE"
 
